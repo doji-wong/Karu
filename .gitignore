@@ -1,0 +1,34 @@
+# macOS System Files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# Xcode & Swift Package Manager
+.build/
+Packages/
+Package.pins
+Package.resolved
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+*.xcuserdatad
+DerivedData/
+.swiftpm/
+
+# IDEs
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*~
+
+# Crash Logs & App Data
+*.crash
+CrashReporter/
