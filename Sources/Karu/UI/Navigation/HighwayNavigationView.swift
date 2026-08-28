@@ -45,6 +45,9 @@ public struct HighwayNavigationView: View {
                     // Neon Side Curbs / Guard Rails
                     RoadGuardRails(glowColor: KaruTheme.statusGlow(for: engine.state))
 
+                    // Tesla Autopilot / FSD Trajectory Beam
+                    AutopilotTrajectoryBeam(state: engine.state)
+
                     // Animated Center-line Road Markings
                     TimelineView(.animation(paused: engine.state != .cruising)) { timeline in
                         RoadMarkingsView(offset: roadOffset)
@@ -60,7 +63,7 @@ public struct HighwayNavigationView: View {
                         hazardPinsOverlay(session: session)
                     }
 
-                    // Active Vehicle Avatar on the Road
+                    // Active Vector Vehicle Digital Twin on the Road
                     vehicleAvatarView
 
                     // Waypoint Markers (Start, 50% Milestone, Destination)
@@ -191,37 +194,33 @@ public struct HighwayNavigationView: View {
         }
     }
 
-    // MARK: - Vehicle Avatar
+    // MARK: - Vehicle Digital Twin
     private var vehicleAvatarView: some View {
         VStack {
             Spacer()
             HStack {
                 Spacer()
-                VStack(spacing: 2) {
-                    // Vehicle Glyph
-                    ZStack {
-                        Circle()
-                            .fill(KaruTheme.background)
-                            .frame(width: 38, height: 38)
-                            .shadow(color: KaruTheme.statusGlow(for: engine.state).opacity(0.6), radius: 8, x: 0, y: 2)
-
-                        Image(systemName: vehicleIconName(for: engine.activeVehicle))
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundStyle(KaruTheme.statusGlow(for: engine.state))
-                    }
+                VStack(spacing: 4) {
+                    // Vector Vehicle Digital Twin
+                    VehicleDigitalTwinView(
+                        vehicle: engine.activeVehicle,
+                        state: engine.state,
+                        size: CGSize(width: 42, height: 68)
+                    )
 
                     // Speed Badge under Vehicle
-                    Text("\(Int(engine.currentVelocity)) km/h")
+                    Text("\(Int(engine.currentVelocity)) KM/H")
                         .font(.system(size: 9, weight: .black, design: .monospaced))
                         .foregroundStyle(Color.black)
-                        .padding(.horizontal, 6)
+                        .padding(.horizontal, 7)
                         .padding(.vertical, 2)
                         .background(KaruTheme.statusGlow(for: engine.state))
                         .clipShape(Capsule())
+                        .shadow(color: KaruTheme.statusGlow(for: engine.state).opacity(0.6), radius: 4)
                 }
                 Spacer()
             }
-            .padding(.bottom, 12)
+            .padding(.bottom, 8)
         }
     }
 
@@ -389,3 +388,56 @@ struct RoadMarkingsView: View {
         }
     }
 }
+
+// MARK: - Tesla Autopilot FSD Trajectory Beam
+
+struct AutopilotTrajectoryBeam: View {
+    let state: TransitState
+
+    var body: some View {
+        GeometryReader { geo in
+            if state == .cruising {
+                Path { path in
+                    let centerX = geo.size.width / 2
+                    let topWidth: CGFloat = 6
+                    let bottomWidth: CGFloat = 16
+                    
+                    path.move(to: CGPoint(x: centerX - topWidth / 2, y: 0))
+                    path.addLine(to: CGPoint(x: centerX + topWidth / 2, y: 0))
+                    path.addLine(to: CGPoint(x: centerX + bottomWidth / 2, y: geo.size.height * 0.7))
+                    path.addLine(to: CGPoint(x: centerX - bottomWidth / 2, y: geo.size.height * 0.7))
+                    path.closeSubpath()
+                }
+                .fill(
+                    LinearGradient(
+                        colors: [KaruTheme.cyberCyan.opacity(0.05), KaruTheme.cyberCyan.opacity(0.45)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .shadow(color: KaruTheme.cyberCyan.opacity(0.6), radius: 6)
+            } else if state == .trafficStalled {
+                Path { path in
+                    let centerX = geo.size.width / 2
+                    let topWidth: CGFloat = 6
+                    let bottomWidth: CGFloat = 18
+                    
+                    path.move(to: CGPoint(x: centerX - topWidth / 2, y: geo.size.height * 0.3))
+                    path.addLine(to: CGPoint(x: centerX + topWidth / 2, y: geo.size.height * 0.3))
+                    path.addLine(to: CGPoint(x: centerX + bottomWidth / 2, y: geo.size.height * 0.7))
+                    path.addLine(to: CGPoint(x: centerX - bottomWidth / 2, y: geo.size.height * 0.7))
+                    path.closeSubpath()
+                }
+                .fill(
+                    LinearGradient(
+                        colors: [KaruTheme.cyberOrange.opacity(0.1), KaruTheme.cyberOrange.opacity(0.5)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .shadow(color: KaruTheme.cyberOrange.opacity(0.7), radius: 8)
+            }
+        }
+    }
+}
+

@@ -91,27 +91,26 @@ public final class MenuBarController: NSObject {
     public func updateStatusItemVisuals() {
         guard let button = statusItem?.button else { return }
 
-        // Use racing-themed SF Symbols as menu bar icon
         switch engine.state {
         case .idle:
-            button.image = NSImage(systemSymbolName: "hare.fill", accessibilityDescription: "Karu — Idle")
+            button.image = NSImage(systemSymbolName: "car.fill", accessibilityDescription: "Karu — Parked")
             button.title = ""
 
         case .cruising:
-            button.image = NSImage(systemSymbolName: "hare.fill", accessibilityDescription: "Karu — Cruising")
+            button.image = NSImage(systemSymbolName: "bolt.car.fill", accessibilityDescription: "Karu — Cruising")
             button.title = " \(Int(engine.currentVelocity)) km/h"
 
         case .trafficStalled:
-            button.image = NSImage(systemSymbolName: "tortoise.fill", accessibilityDescription: "Karu — Gridlock")
-            button.title = " GRIDLOCK"
+            button.image = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: "Karu — Gridlock")
+            button.title = " [GRIDLOCK]"
 
         case .pitStop:
             button.image = NSImage(systemSymbolName: "cup.and.saucer.fill", accessibilityDescription: "Karu — Pit Stop")
-            button.title = " PIT STOP"
+            button.title = " [PIT STOP]"
 
         case .completed:
-            button.image = NSImage(systemSymbolName: "flag.checkered", accessibilityDescription: "Karu — Arrived!")
-            button.title = " 🏆 Arrived!"
+            button.image = NSImage(systemSymbolName: "flag.checkered", accessibilityDescription: "Karu — Arrived")
+            button.title = " ARRIVED"
         }
     }
 }
