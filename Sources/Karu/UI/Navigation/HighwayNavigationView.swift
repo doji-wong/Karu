@@ -18,10 +18,10 @@ public struct HighwayNavigationView: View {
             // Lane Telemetry Banner (Waze Navigation Header with 3D Map Toggle)
             laneHeaderBanner
 
-            // Navigation Map Display (OpenFreeMap 3D or Isometric 2.5D Highway)
+            // Navigation Map Display (Live Courier Route Tracking or Isometric 2.5D Highway)
             ZStack {
                 if useRealWorld3DMap {
-                    OpenFreeMapView(engine: engine)
+                    LiveRouteTrackingView(engine: engine)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 } else {
                     // Background Night Sky / Distant Horizon Glow
@@ -112,26 +112,26 @@ public struct HighwayNavigationView: View {
 
             Spacer()
 
-            // 3D Map / Highway View Toggle
+            // Live Tracking / Highway View Toggle
             Button {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                     useRealWorld3DMap.toggle()
                 }
             } label: {
                 HStack(spacing: 3) {
-                    Image(systemName: useRealWorld3DMap ? "globe.americas.fill" : "road.lanes")
+                    Image(systemName: useRealWorld3DMap ? "location.north.line.fill" : "road.lanes")
                         .font(.system(size: 9))
-                    Text(useRealWorld3DMap ? "3D MAP" : "HIGHWAY")
+                    Text(useRealWorld3DMap ? "LIVE TRACKING" : "HIGHWAY")
                         .font(.system(size: 8, weight: .bold, design: .monospaced))
                 }
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
-                .background(useRealWorld3DMap ? KaruTheme.navCyan.opacity(0.2) : KaruTheme.surfaceElevated)
-                .foregroundStyle(useRealWorld3DMap ? KaruTheme.navCyan : KaruTheme.textSecondary)
+                .background(useRealWorld3DMap ? KaruTheme.cruiseEmerald.opacity(0.2) : KaruTheme.surfaceElevated)
+                .foregroundStyle(useRealWorld3DMap ? KaruTheme.cruiseEmerald : KaruTheme.textSecondary)
                 .clipShape(Capsule())
             }
             .buttonStyle(.plain)
-            .help("Toggle between OpenFreeMap 3D and 2.5D Highway")
+            .help("Toggle between Live Route Tracking and 2.5D Highway")
 
             if let session = engine.activeSession, let target = session.targetDuration {
                 let remaining = max(0, target - session.cruisingDuration)
