@@ -1,7 +1,7 @@
 import SwiftUI
 import KaruCore
 
-/// Tesla & Cybertruck-inspired Cockpit Diagnostic Dashboard popover for Menu Bar & Notch.
+/// SpaceX-inspired Cockpit Telemetry Dashboard popover for macOS Menu Bar & Notch.
 public struct DiagnosticPopoverView: View {
     @Bindable public var engine: TransitEngine
     @Bindable public var scratchpadStore: ScratchpadStore
@@ -12,9 +12,10 @@ public struct DiagnosticPopoverView: View {
     public var onOpenSettings: (() -> Void)?
 
     @State private var selectedPreset: TripPreset = .cityDash25
+    @State private var selectedCityRoute: CityRoutePreset = .manilaBGC
     @State private var selectedHabitId: UUID?
     @State private var habits: [Habit] = []
-    @State private var activeTab: Int = 0
+    @State private var isLogDrawerExpanded: Bool = false
 
     public init(
         engine: TransitEngine,
@@ -36,24 +37,28 @@ public struct DiagnosticPopoverView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            // Top Tesla Telemetry & PRND Header
-            telemetryHeader
-                .padding(.horizontal, 14)
-                .padding(.top, 14)
-                .padding(.bottom, 10)
+            // ── 1. SpaceX Mission Telemetry Header ──
+            SpaceXTelemetryHeader(
+                state: engine.state,
+                velocity: engine.currentVelocity,
+                activeSession: engine.activeSession
+            )
+            .padding(.horizontal, 14)
+            .padding(.top, 14)
+            .padding(.bottom, 10)
             
-            // Neon accent divider line
+            // Razor-sharp 1px divider
             Rectangle()
                 .fill(KaruTheme.stripeAccent(for: engine.state))
-                .frame(height: 1.5)
-                .shadow(color: KaruTheme.stripeAccent(for: engine.state).opacity(0.6), radius: 4)
+                .frame(height: 1)
+                .shadow(color: KaruTheme.stripeAccent(for: engine.state).opacity(0.8), radius: 3)
 
-            // Dynamic Content
+            // ── 2. Dynamic Stage Content ──
             if engine.state == .idle {
-                idleLauncherSection
+                preFlightLauncherSection
                     .padding(14)
             } else {
-                activeFlightSection
+                activeMissionSection
                     .padding(14)
             }
 
@@ -61,119 +66,111 @@ public struct DiagnosticPopoverView: View {
                 .fill(KaruTheme.cardBorder)
                 .frame(height: 1)
 
-            // Bottom Utility Toolbar
+            // ── 3. Bottom Aerospace Toolbar ──
             bottomToolbar
                 .padding(.horizontal, 14)
-                .padding(.vertical, 10)
+                .padding(.vertical, 8)
         }
-        .frame(width: 380)
+        .frame(width: 390)
         .background(KaruTheme.background)
         .onAppear {
             self.habits = storage.loadHabits()
         }
     }
 
-    // MARK: - 1. Telemetry & PRND Header
-    private var telemetryHeader: some View {
-        HStack(alignment: .center, spacing: 10) {
-            // Tesla PRND Gear Cluster + Battery Focus Bar
-            TeslaGearSelectorView(
-                state: engine.state,
-                showEnergyBar: true,
-                focusFraction: engine.activeSession?.progressFraction ?? 1.0
-            )
-
-            Spacer()
-
-            // Digital Speedometer Readout
-            VStack(alignment: .trailing, spacing: 0) {
-                HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Text("\(Int(engine.currentVelocity))")
-                        .font(KaruTheme.velocityDisplay)
-                        .foregroundStyle(KaruTheme.statusGlow(for: engine.state))
-
-                    Text("KM/H")
-                        .font(KaruTheme.captionMono)
-                        .foregroundStyle(KaruTheme.textMuted)
-                }
-
-                Text(KaruTheme.stateSubtitle(for: engine.state))
-                    .font(.system(size: 8, weight: .bold, design: .monospaced))
-                    .foregroundStyle(KaruTheme.statusGlow(for: engine.state))
-            }
-        }
-    }
-
-    // MARK: - 2. Idle Launcher (Cybertruck Non-Truncating Route Preset Cards)
-    private var idleLauncherSection: some View {
+    // MARK: - Pre-Flight Launcher (Idle State)
+    private var preFlightLauncherSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("MISSION OBJECTIVE / ROUTE")
+                Text("MISSION PROFILE / TARGET")
                     .font(KaruTheme.statLabel)
                     .foregroundStyle(KaruTheme.textMuted)
-                    .tracking(1.2)
+                    .tracking(1.0)
 
                 Spacer()
 
-                Text(engine.activeVehicle.name.uppercased())
-                    .font(KaruTheme.statLabel)
-                    .foregroundStyle(KaruTheme.cyberCyan)
-                    .tracking(1.0)
+                Menu {
+                    ForEach(CityRoutePreset.allCases) { route in
+                        Button(route.rawValue) {
+                            selectedCityRoute = route
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "map.fill")
+                            .font(.system(size: 9))
+                        Text(selectedCityRoute.rawValue)
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(KaruTheme.surfaceElevated)
+                    .foregroundStyle(KaruTheme.telemetryCyan)
+                    .overlay(RoundedRectangle(cornerRadius: 3).stroke(KaruTheme.cardBorder, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                }
+                .menuStyle(.borderlessButton)
             }
 
-            // 2x2 Preset Grid with 100% Crisp Non-Truncated Badges
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
+            // Minimalist Mission Preset Selector
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 6) {
                 ForEach(TripPreset.allCases) { preset in
                     let isSelected = selectedPreset == preset
                     Button {
                         selectedPreset = preset
                     } label: {
-                        VStack(alignment: .leading, spacing: 6) {
-                            // Top Row: Title + Duration Tag
+                        VStack(alignment: .leading, spacing: 4) {
                             HStack {
-                                Text(presetShortTitle(preset))
-                                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                                Text(presetTitle(preset))
+                                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
                                     .foregroundStyle(isSelected ? Color.white : KaruTheme.textPrimary)
 
                                 Spacer()
 
-                                Text(presetDurationTag(preset))
+                                Text(presetTag(preset))
                                     .font(.system(size: 8, weight: .bold, design: .monospaced))
-                                    .padding(.horizontal, 5)
-                                    .padding(.vertical, 2)
-                                    .background(isSelected ? KaruTheme.cyberCyan : KaruTheme.surfaceElevated)
-                                    .foregroundStyle(isSelected ? Color.black : KaruTheme.cyberCyan)
-                                    .clipShape(Capsule())
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 1)
+                                    .background(isSelected ? KaruTheme.telemetryCyan : KaruTheme.surfaceElevated)
+                                    .foregroundStyle(isSelected ? Color.black : KaruTheme.telemetryCyan)
+                                    .clipShape(RoundedRectangle(cornerRadius: 2))
                             }
 
-                            // Bottom Row: Distance Subtitle
                             if let dist = preset.targetDistanceKm {
-                                Text("\(Int(dist)) KM CRUISE")
-                                    .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                                    .foregroundStyle(isSelected ? KaruTheme.cyberCyan : KaruTheme.textSecondary)
+                                Text("\(Int(dist)) KM TRAJECTORY")
+                                    .font(.system(size: 8, weight: .semibold, design: .monospaced))
+                                    .foregroundStyle(isSelected ? KaruTheme.telemetryCyan : KaruTheme.textSecondary)
                             } else {
-                                Text("UNCAPPED FLOW")
-                                    .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                                Text("UNCAPPED FLIGHT")
+                                    .font(.system(size: 8, weight: .semibold, design: .monospaced))
                                     .foregroundStyle(KaruTheme.textMuted)
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(10)
+                        .padding(8)
                         .background(isSelected ? KaruTheme.surfaceElevated : KaruTheme.surface)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(isSelected ? KaruTheme.cyberCyan : KaruTheme.cardBorder, lineWidth: isSelected ? 1.5 : 1)
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(isSelected ? KaruTheme.telemetryCyan : KaruTheme.cardBorder, lineWidth: isSelected ? 1.5 : 1)
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
                     }
                     .buttonStyle(.plain)
                 }
             }
 
-            // Habit Linker (Optional)
+            // Live Map Preview
+            ZStack {
+                LiveRouteTrackingView(engine: engine, cityRoute: selectedCityRoute)
+                    .frame(height: 120)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(KaruTheme.cardBorder, lineWidth: 1))
+            }
+
+            // Habit Linker
             if !habits.isEmpty {
                 Menu {
-                    Button("None (Quick Trip)") { selectedHabitId = nil }
+                    Button("None (Standard Mission)") { selectedHabitId = nil }
                     ForEach(habits) { habit in
                         Button("\(habit.name) (\(habit.currentStreakDays)d streak)") {
                             selectedHabitId = habit.id
@@ -181,180 +178,186 @@ public struct DiagnosticPopoverView: View {
                     }
                 } label: {
                     HStack {
-                        Image(systemName: "tag.fill")
-                            .font(.system(size: 10))
-                        Text(habits.first(where: { $0.id == selectedHabitId })?.name ?? "Link Daily Habit Target...")
+                        Image(systemName: "tag.fill").font(.system(size: 9))
+                        Text(habits.first(where: { $0.id == selectedHabitId })?.name ?? "Link Habit Track...")
                         Spacer()
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 10))
+                        Image(systemName: "chevron.down").font(.system(size: 9))
                     }
                     .font(KaruTheme.subheadline)
                     .foregroundStyle(KaruTheme.textSecondary)
-                    .padding(9)
+                    .padding(8)
                     .background(KaruTheme.surface)
-                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(KaruTheme.cardBorder, lineWidth: 1))
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(KaruTheme.cardBorder, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
                 .menuStyle(.borderlessButton)
             }
 
-            // Cybertruck-style START TRIP Action Bar
+            // Launch Action Button
             Button {
                 let linkedHabit = habits.first(where: { $0.id == selectedHabitId })
                 engine.startTrip(preset: selectedPreset, habit: linkedHabit)
                 audioEngine.start()
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Image(systemName: "bolt.fill")
-                        .font(.system(size: 12, weight: .black))
-                    Text("ENGAGE AUTOPILOT · START TRIP")
-                        .font(.system(size: 12, weight: .heavy, design: .monospaced))
-                        .tracking(1.0)
+                        .font(.system(size: 11, weight: .black))
+                    Text("INITIATE MISSION · START FOCUS")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .tracking(0.8)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(
-                    LinearGradient(
-                        colors: [KaruTheme.cyberCyan, KaruTheme.cruiseEmerald],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
+                .padding(.vertical, 10)
+                .background(KaruTheme.telemetryCyan)
                 .foregroundStyle(Color.black)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .shadow(color: KaruTheme.cyberCyan.opacity(0.4), radius: 8, x: 0, y: 2)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .shadow(color: KaruTheme.telemetryCyan.opacity(0.4), radius: 6)
             }
             .buttonStyle(.plain)
         }
     }
 
-    // MARK: - 3. Active Flight Section
-    private var activeFlightSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let session = engine.activeSession {
-                // Highway Perspective Road with Vector Vehicle
-                HighwayNavigationView(engine: engine)
+    // MARK: - Active Mission Section (Flight State)
+    private var activeMissionSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // Embedded CARTO Dark Matter Real Vector Map Centerpiece
+            ZStack(alignment: .topTrailing) {
+                LiveRouteTrackingView(engine: engine, cityRoute: selectedCityRoute)
+                    .frame(height: 155)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(KaruTheme.cardBorder, lineWidth: 1))
 
-                // In-Flight Scratchpad Tab Selector
-                Picker("", selection: $activeTab) {
-                    Text("Scratchpad").tag(0)
-                    Text("Traffic Hazards (\(session.incidents.count))").tag(1)
-                }
-                .pickerStyle(.segmented)
-
-                if activeTab == 0 {
-                    // Live Scratchpad Editor
-                    VStack(alignment: .trailing, spacing: 4) {
-                        TextEditor(text: $scratchpadStore.notes)
-                            .font(.system(size: 11, design: .monospaced))
-                            .frame(height: 80)
-                            .scrollContentBackground(.hidden)
-                            .background(KaruTheme.surface)
-                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(KaruTheme.cardBorder, lineWidth: 1))
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
-                        
-                        Text("Local-first atomic persistence")
+                // Route Switcher Badge on Map
+                Menu {
+                    ForEach(CityRoutePreset.allCases) { route in
+                        Button(route.rawValue) {
+                            selectedCityRoute = route
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "location.north.line.fill")
+                            .font(.system(size: 8))
+                        Text(selectedCityRoute.rawValue.components(separatedBy: " ").prefix(2).joined(separator: " "))
                             .font(.system(size: 8, weight: .bold, design: .monospaced))
-                            .foregroundStyle(KaruTheme.textMuted)
                     }
-                } else {
-                    // Incident Log List
-                    ScrollView {
-                        VStack(spacing: 6) {
-                            if session.incidents.isEmpty {
-                                Text("Clear highway. Zero traffic stalls detected.")
-                                    .font(KaruTheme.subheadline)
-                                    .foregroundStyle(KaruTheme.textMuted)
-                                    .padding(.vertical, 16)
-                            } else {
-                                ForEach(session.incidents) { inc in
-                                    HStack {
-                                        Image(systemName: "exclamationmark.triangle.fill")
-                                            .foregroundStyle(KaruTheme.cyberOrange)
-                                        Text(inc.appName)
-                                            .font(KaruTheme.subheadline)
-                                            .foregroundStyle(KaruTheme.textPrimary)
-                                        Spacer()
-                                        Text("\(Int(inc.duration))s stall")
-                                            .font(KaruTheme.captionMono)
-                                            .foregroundStyle(KaruTheme.hazardRed)
-                                    }
-                                    .padding(8)
-                                    .background(KaruTheme.surface)
-                                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                                }
-                            }
-                        }
-                    }
-                    .frame(height: 95)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color.black.opacity(0.85))
+                    .foregroundStyle(KaruTheme.telemetryCyan)
+                    .overlay(RoundedRectangle(cornerRadius: 3).stroke(KaruTheme.cardBorder, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
                 }
+                .menuStyle(.borderlessButton)
+                .padding(6)
+            }
 
-                // Active Trip Controls
-                HStack(spacing: 8) {
-                    // Pit Stop Button
-                    Button {
-                        engine.togglePitStop()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: engine.state == .pitStop ? "play.fill" : "pause.fill")
-                            Text(engine.state == .pitStop ? "RESUME" : "PIT STOP")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(KaruTheme.surfaceElevated)
-                        .foregroundStyle(engine.state == .pitStop ? KaruTheme.hazardAmber : KaruTheme.textPrimary)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(KaruTheme.cardBorder, lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
+            // SpaceX 3-Box Telemetry Grid
+            SpaceXTelemetryGrid(
+                session: engine.activeSession,
+                targetDistanceKm: engine.activeSession?.preset.targetDistanceKm
+            )
 
-                    // Arrive Early Button
-                    Button {
-                        engine.completeTrip()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "flag.checkered")
-                            Text("ARRIVE")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(KaruTheme.cruiseEmerald)
-                        .foregroundStyle(Color.black)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                    }
-                    .buttonStyle(.plain)
-
-                    // Cancel / Eject Trip
-                    Button {
-                        engine.cancelTrip()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 10, weight: .bold))
-                            .padding(8)
-                            .background(KaruTheme.surface)
-                            .foregroundStyle(KaruTheme.textSecondary)
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
-                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(KaruTheme.cardBorder, lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
+            // Collapsible In-Flight Log Drawer
+            if isLogDrawerExpanded {
+                VStack(alignment: .trailing, spacing: 3) {
+                    TextEditor(text: $scratchpadStore.notes)
+                        .font(.system(size: 10, design: .monospaced))
+                        .frame(height: 60)
+                        .scrollContentBackground(.hidden)
+                        .background(KaruTheme.surface)
+                        .overlay(RoundedRectangle(cornerRadius: 3).stroke(KaruTheme.cardBorder, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                    
+                    Text("LOCAL TELEMETRY LOG")
+                        .font(.system(size: 7, weight: .bold, design: .monospaced))
+                        .foregroundStyle(KaruTheme.textMuted)
                 }
+            }
+
+            // Aerospace Flight Controls
+            HStack(spacing: 6) {
+                // Hold / Pit Stop
+                Button {
+                    engine.togglePitStop()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: engine.state == .pitStop ? "play.fill" : "pause.fill")
+                            .font(.system(size: 9, weight: .bold))
+                        Text(engine.state == .pitStop ? "RESUME" : "HOLD")
+                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 7)
+                    .background(KaruTheme.surfaceElevated)
+                    .foregroundStyle(engine.state == .pitStop ? KaruTheme.telemetryAmber : KaruTheme.textPrimary)
+                    .overlay(RoundedRectangle(cornerRadius: 3).stroke(KaruTheme.cardBorder, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                }
+                .buttonStyle(.plain)
+
+                // Complete / Dock
+                Button {
+                    engine.completeTrip()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "flag.checkered")
+                            .font(.system(size: 9, weight: .bold))
+                        Text("DOCK")
+                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 7)
+                    .background(KaruTheme.telemetryGreen)
+                    .foregroundStyle(Color.black)
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                }
+                .buttonStyle(.plain)
+
+                // Log Drawer Toggle
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        isLogDrawerExpanded.toggle()
+                    }
+                } label: {
+                    Image(systemName: "note.text")
+                        .font(.system(size: 9, weight: .bold))
+                        .padding(7)
+                        .background(isLogDrawerExpanded ? KaruTheme.surfaceElevated : KaruTheme.surface)
+                        .foregroundStyle(isLogDrawerExpanded ? KaruTheme.telemetryCyan : KaruTheme.textSecondary)
+                        .overlay(RoundedRectangle(cornerRadius: 3).stroke(KaruTheme.cardBorder, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                }
+                .buttonStyle(.plain)
+
+                // Abort Mission
+                Button {
+                    engine.cancelTrip()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 9, weight: .bold))
+                        .padding(7)
+                        .background(KaruTheme.surface)
+                        .foregroundStyle(KaruTheme.telemetryRed)
+                        .overlay(RoundedRectangle(cornerRadius: 3).stroke(KaruTheme.telemetryRed.opacity(0.4), lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                }
+                .buttonStyle(.plain)
             }
         }
     }
 
-    // MARK: - 4. Bottom Utility Toolbar
+    // MARK: - Bottom Utility Toolbar
     private var bottomToolbar: some View {
         HStack(spacing: 12) {
-            // Ambient Audio Volume Slider
-            HStack(spacing: 6) {
+            // Audio Mute & Volume
+            HStack(spacing: 5) {
                 Button {
                     audioEngine.toggleMute()
                 } label: {
                     Image(systemName: audioEngine.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                        .font(.system(size: 11))
-                        .foregroundStyle(audioEngine.isMuted ? KaruTheme.textMuted : KaruTheme.cyberCyan)
+                        .font(.system(size: 10))
+                        .foregroundStyle(audioEngine.isMuted ? KaruTheme.textMuted : KaruTheme.telemetryCyan)
                 }
                 .buttonStyle(.plain)
 
@@ -365,63 +368,58 @@ public struct DiagnosticPopoverView: View {
                     ),
                     in: 0.0...1.0
                 )
-                .frame(width: 80)
+                .frame(width: 75)
             }
 
             Spacer()
 
-            // Floating HUD Overlay Toggle
+            // Floating HUD Overlay
             Button {
                 onToggleFloatingHUD?()
             } label: {
                 Image(systemName: "pip.badge.plus")
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(KaruTheme.textSecondary)
             }
             .buttonStyle(.plain)
-            .help("Toggle Minimal Floating HUD")
 
-            // Garage Button
+            // Garage
             Button {
                 onOpenGarage?()
             } label: {
                 Image(systemName: "car.2.fill")
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(KaruTheme.textSecondary)
             }
             .buttonStyle(.plain)
-            .help("Open Karu Vehicle Garage")
 
-            // Settings Button
+            // Settings
             Button {
                 onOpenSettings?()
             } label: {
                 Image(systemName: "gearshape.fill")
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(KaruTheme.textSecondary)
             }
             .buttonStyle(.plain)
-            .help("Filter Rules & Preferences")
         }
     }
 
-    // MARK: - Preset Formatting Helpers
-
-    private func presetShortTitle(_ preset: TripPreset) -> String {
+    private func presetTitle(_ preset: TripPreset) -> String {
         switch preset {
-        case .cityDash25: return "City Dash"
-        case .expressway50: return "Expressway"
-        case .interstate90: return "Interstate"
-        case .openHighway: return "Open Highway"
+        case .cityDash25: return "CITY DASH"
+        case .expressway50: return "EXPRESSWAY"
+        case .interstate90: return "INTERSTATE"
+        case .openHighway: return "OPEN FLOW"
         }
     }
 
-    private func presetDurationTag(_ preset: TripPreset) -> String {
+    private func presetTag(_ preset: TripPreset) -> String {
         switch preset {
-        case .cityDash25: return "25 MIN"
-        case .expressway50: return "50 MIN"
-        case .interstate90: return "90 MIN"
-        case .openHighway: return "STOPWATCH"
+        case .cityDash25: return "25M"
+        case .expressway50: return "50M"
+        case .interstate90: return "90M"
+        case .openHighway: return "∞"
         }
     }
 }

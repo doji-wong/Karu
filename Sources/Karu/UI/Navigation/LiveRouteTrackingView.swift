@@ -2,13 +2,13 @@ import SwiftUI
 import WebKit
 import KaruCore
 
-/// Scenic city route presets for the Live Route Tracker.
+/// Scenic city route presets for SpaceX Telemetry Live Route Tracker.
 public enum CityRoutePreset: String, CaseIterable, Identifiable {
-    case manilaBGC = "Manila BGC Expressway"
+    case manilaBGC = "Manila BGC Trajectory"
     case tokyoShinjuku = "Tokyo Shinjuku → Shibuya"
-    case londonThames = "London Tower Bridge → Westminster"
+    case londonThames = "London Thames River"
     case sfGoldenGate = "San Francisco Golden Gate"
-    case seoulGangnam = "Seoul Gangnam → Itaewon"
+    case seoulGangnam = "Seoul Gangnam Axis"
     case parisChamps = "Paris Champs-Élysées"
 
     public var id: String { rawValue }
@@ -84,16 +84,14 @@ public enum CityRoutePreset: String, CaseIterable, Identifiable {
     }
 }
 
-/// Live courier & delivery-style focus route tracking map with dual-polyline progression and vehicle marker.
+/// SpaceX-inspired CARTO Dark Matter real vector trajectory map.
 public struct LiveRouteTrackingView: NSViewRepresentable {
     @Bindable public var engine: TransitEngine
     public var cityRoute: CityRoutePreset
-    public var vehicleType: VehicleType
 
-    public init(engine: TransitEngine, cityRoute: CityRoutePreset = .manilaBGC, vehicleType: VehicleType = .midnightEV) {
+    public init(engine: TransitEngine, cityRoute: CityRoutePreset = .manilaBGC) {
         self.engine = engine
         self.cityRoute = cityRoute
-        self.vehicleType = vehicleType
     }
 
     public func makeCoordinator() -> Coordinator {
@@ -123,9 +121,9 @@ public struct LiveRouteTrackingView: NSViewRepresentable {
         if let session = engine.activeSession, let target = session.targetDuration {
             let remaining = max(0, target - session.cruisingDuration)
             let mins = Int(remaining) / 60
-            timeRemainingStr = "\(mins)m away"
+            timeRemainingStr = "\(mins)M REMAINING"
         } else {
-            timeRemainingStr = "\(Int(velocity)) km/h"
+            timeRemainingStr = "\(Int(velocity)) KM/H"
         }
 
         let js = """
@@ -136,20 +134,6 @@ public struct LiveRouteTrackingView: NSViewRepresentable {
         """
         webView.evaluateJavaScript(js, completionHandler: nil)
     }
-
-    // MARK: - Vehicle Icon Mapping
-    private var vehicleEmoji: String {
-        switch vehicleType {
-        case .midnightEV: return "🚗"
-        case .classicSarao: return "🚐"
-        case .nightRainHatchback: return "🚙"
-        case .shinkansenExpress: return "🚄"
-        case .coastalBus: return "🚌"
-        }
-    }
-
-    private var vehicleStalledEmoji: String { "⚠️" }
-    private var vehiclePitStopEmoji: String { "☕" }
 
     // MARK: - HTML/JS Map Template
     private func generateTrackingHTML() -> String {
@@ -165,89 +149,83 @@ public struct LiveRouteTrackingView: NSViewRepresentable {
             <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
             <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
             <style>
-                body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0B0D13; font-family: -apple-system, sans-serif; }
+                body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000000; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
                 #map { width: 100%; height: 100%; }
                 
-                /* Origin & Destination Pins */
-                .origin-pin {
-                    width: 28px; height: 28px;
-                    background: #10B981; border: 2.5px solid #ffffff;
-                    border-radius: 50%; display: flex; align-items: center; justify-content: center;
-                    box-shadow: 0 0 12px rgba(16, 185, 129, 0.7);
-                    font-size: 14px;
+                /* Origin & Target Reticles */
+                .origin-reticle {
+                    width: 14px; height: 14px;
+                    border: 1.5px solid #00E5FF;
+                    border-radius: 50%;
+                    background: rgba(0, 229, 255, 0.2);
+                    box-shadow: 0 0 8px rgba(0, 229, 255, 0.8);
                 }
-                .destination-pin {
-                    width: 28px; height: 28px;
-                    background: #F43F5E; border: 2.5px solid #ffffff;
-                    border-radius: 50%; display: flex; align-items: center; justify-content: center;
-                    box-shadow: 0 0 12px rgba(244, 63, 94, 0.7);
-                    font-size: 14px;
+                .target-reticle {
+                    width: 16px; height: 16px;
+                    border: 1.5px solid #FFFFFF;
+                    border-radius: 3px;
+                    background: rgba(255, 255, 255, 0.15);
+                    box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
                 }
 
-                /* Vehicle Marker — Shows the actual vehicle emoji */
-                .vehicle-marker-wrapper {
+                /* SpaceX Telemetry Beacon */
+                .beacon-wrapper {
                     position: relative;
                     display: flex; flex-direction: column;
-                    align-items: center;
+                    align-items: center; justify-content: center;
                 }
-                .vehicle-icon {
-                    width: 40px; height: 40px;
-                    display: flex; align-items: center; justify-content: center;
-                    font-size: 26px;
-                    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
-                    transition: transform 0.3s ease;
-                }
-                .vehicle-icon.stalled {
-                    animation: shake 0.4s infinite;
-                }
-                .vehicle-glow {
-                    position: absolute;
-                    bottom: -4px;
-                    width: 32px; height: 10px;
-                    background: radial-gradient(ellipse, rgba(16,185,129,0.5) 0%, transparent 70%);
+                .beacon-ring {
+                    width: 22px; height: 22px;
                     border-radius: 50%;
-                    transition: background 0.3s ease;
+                    border: 1.5px solid #00E5FF;
+                    background: rgba(0, 229, 255, 0.15);
+                    box-shadow: 0 0 12px #00E5FF, inset 0 0 8px rgba(0, 229, 255, 0.5);
+                    animation: pulse 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+                    display: flex; align-items: center; justify-content: center;
                 }
-                .vehicle-glow.stalled {
-                    background: radial-gradient(ellipse, rgba(245,158,11,0.6) 0%, transparent 70%);
+                .beacon-dot {
+                    width: 7px; height: 7px;
+                    border-radius: 50%;
+                    background: #FFFFFF;
+                    box-shadow: 0 0 6px #FFFFFF;
+                }
+                .beacon-ring.anomaly {
+                    border-color: #FF3B30;
+                    box-shadow: 0 0 14px #FF3B30, inset 0 0 8px rgba(255, 59, 48, 0.5);
+                }
+                .beacon-ring.anomaly .beacon-dot {
+                    background: #FF3B30;
+                    box-shadow: 0 0 6px #FF3B30;
                 }
 
-                .floating-eta-badge {
+                .telemetry-eta-pill {
                     position: absolute;
                     bottom: 100%;
                     left: 50%;
                     transform: translateX(-50%);
-                    margin-bottom: 6px;
-                    background: rgba(11, 13, 19, 0.94);
-                    color: #ffffff;
-                    border: 1px solid #10B981;
-                    padding: 3px 10px;
-                    border-radius: 8px;
-                    font-size: 10px;
+                    margin-bottom: 5px;
+                    background: rgba(0, 0, 0, 0.92);
+                    color: #00E5FF;
+                    border: 1px solid #00E5FF;
+                    padding: 2px 7px;
+                    border-radius: 3px;
+                    font-size: 9px;
                     font-weight: 700;
+                    letter-spacing: 0.5px;
                     white-space: nowrap;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+                    box-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
                     pointer-events: none;
                 }
-                .floating-eta-badge::after {
-                    content: '';
-                    position: absolute;
-                    top: 100%;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    border-width: 5px;
-                    border-style: solid;
-                    border-color: rgba(11, 13, 19, 0.94) transparent transparent transparent;
-                }
-                .floating-eta-badge.stalled {
-                    border-color: #F59E0B;
-                    color: #FCD34D;
+                .telemetry-eta-pill.anomaly {
+                    border-color: #FF3B30;
+                    color: #FF3B30;
+                    box-shadow: 0 0 8px rgba(255, 59, 48, 0.4);
                 }
 
-                @keyframes shake {
-                    0%, 100% { transform: translateX(0); }
-                    25% { transform: translateX(-2px); }
-                    75% { transform: translateX(2px); }
+                @keyframes pulse {
+                    0% { transform: scale(0.9); opacity: 1; }
+                    70% { transform: scale(1.4); opacity: 0.4; }
+                    100% { transform: scale(0.9); opacity: 1; }
                 }
             </style>
         </head>
@@ -258,8 +236,8 @@ public struct LiveRouteTrackingView: NSViewRepresentable {
                     \(waypointsJSON)
                 ];
 
-                const pickupCoord = routeCoordinates[0];
-                const dropoffCoord = routeCoordinates[routeCoordinates.length - 1];
+                const originCoord = routeCoordinates[0];
+                const targetCoord = routeCoordinates[routeCoordinates.length - 1];
 
                 const map = new maplibregl.Map({
                     container: 'map',
@@ -270,46 +248,41 @@ public struct LiveRouteTrackingView: NSViewRepresentable {
                     attributionControl: false
                 });
 
-                // ── Vehicle marker with emoji icon ──
+                // Telemetry Beacon Marker
                 const wrapper = document.createElement('div');
-                wrapper.className = 'vehicle-marker-wrapper';
+                wrapper.className = 'beacon-wrapper';
 
-                const badge = document.createElement('div');
-                badge.className = 'floating-eta-badge';
-                badge.id = 'eta-badge';
-                badge.innerText = 'Ready';
-                wrapper.appendChild(badge);
+                const etaBadge = document.createElement('div');
+                etaBadge.className = 'telemetry-eta-pill';
+                etaBadge.id = 'eta-pill';
+                etaBadge.innerText = 'NOMINAL';
+                wrapper.appendChild(etaBadge);
 
-                const iconEl = document.createElement('div');
-                iconEl.className = 'vehicle-icon';
-                iconEl.id = 'vehicle-icon';
-                iconEl.innerText = '\(vehicleEmoji)';
-                wrapper.appendChild(iconEl);
+                const ring = document.createElement('div');
+                ring.className = 'beacon-ring';
+                ring.id = 'beacon-ring';
+                const dot = document.createElement('div');
+                dot.className = 'beacon-dot';
+                ring.appendChild(dot);
+                wrapper.appendChild(ring);
 
-                const glowEl = document.createElement('div');
-                glowEl.className = 'vehicle-glow';
-                glowEl.id = 'vehicle-glow';
-                wrapper.appendChild(glowEl);
-
-                const courierMarker = new maplibregl.Marker({ element: wrapper, offset: [0, -20] })
-                    .setLngLat(pickupCoord)
+                const beaconMarker = new maplibregl.Marker({ element: wrapper, offset: [0, 0] })
+                    .setLngLat(originCoord)
                     .addTo(map);
 
-                // Origin Pin (Start)
+                // Origin Reticle
                 const originEl = document.createElement('div');
-                originEl.className = 'origin-pin';
-                originEl.innerHTML = '📍';
-                new maplibregl.Marker({ element: originEl }).setLngLat(pickupCoord).addTo(map);
+                originEl.className = 'origin-reticle';
+                new maplibregl.Marker({ element: originEl }).setLngLat(originCoord).addTo(map);
 
-                // Destination Pin (Goal)
-                const destEl = document.createElement('div');
-                destEl.className = 'destination-pin';
-                destEl.innerHTML = '🏁';
-                new maplibregl.Marker({ element: destEl }).setLngLat(dropoffCoord).addTo(map);
+                // Target Reticle
+                const targetEl = document.createElement('div');
+                targetEl.className = 'target-reticle';
+                new maplibregl.Marker({ element: targetEl }).setLngLat(targetCoord).addTo(map);
 
                 map.on('load', () => {
-                    // Full route (dark gray)
-                    map.addSource('delivery-full-route', {
+                    // Base Planned Trajectory (Translucent White)
+                    map.addSource('planned-trajectory', {
                         type: 'geojson',
                         data: {
                             type: 'Feature', properties: {},
@@ -317,13 +290,13 @@ public struct LiveRouteTrackingView: NSViewRepresentable {
                         }
                     });
                     map.addLayer({
-                        id: 'delivery-full-route', type: 'line', source: 'delivery-full-route',
+                        id: 'planned-trajectory', type: 'line', source: 'planned-trajectory',
                         layout: { 'line-join': 'round', 'line-cap': 'round' },
-                        paint: { 'line-color': '#334155', 'line-width': 6, 'line-opacity': 0.7 }
+                        paint: { 'line-color': '#FFFFFF', 'line-width': 2, 'line-opacity': 0.25 }
                     });
 
-                    // Progress route (neon emerald)
-                    map.addSource('delivery-progress-route', {
+                    // Active Laser Progress Trajectory (Glowing Electric Cyan)
+                    map.addSource('laser-trajectory', {
                         type: 'geojson',
                         data: {
                             type: 'Feature', properties: {},
@@ -331,41 +304,30 @@ public struct LiveRouteTrackingView: NSViewRepresentable {
                         }
                     });
                     map.addLayer({
-                        id: 'delivery-progress-route', type: 'line', source: 'delivery-progress-route',
+                        id: 'laser-trajectory', type: 'line', source: 'laser-trajectory',
                         layout: { 'line-join': 'round', 'line-cap': 'round' },
-                        paint: { 'line-color': '#10B981', 'line-width': 6, 'line-opacity': 0.95 }
+                        paint: { 'line-color': '#00E5FF', 'line-width': 3.5, 'line-opacity': 0.95 }
                     });
                 });
 
-                // State bridge
-                const CRUISE_EMOJI = '\(vehicleEmoji)';
-                const STALL_EMOJI = '\(vehicleStalledEmoji)';
-                const PITSTOP_EMOJI = '\(vehiclePitStopEmoji)';
-
+                // Bridge
                 window.karuTracker = {
                     updateState: function(state, velocity, hazardAppName, etaText) {
-                        const icon = document.getElementById('vehicle-icon');
-                        const eta = document.getElementById('eta-badge');
-                        const glow = document.getElementById('vehicle-glow');
+                        const ringEl = document.getElementById('beacon-ring');
+                        const eta = document.getElementById('eta-pill');
 
                         if (state === 'trafficStalled') {
-                            icon.innerText = STALL_EMOJI;
-                            icon.className = 'vehicle-icon stalled';
-                            glow.className = 'vehicle-glow stalled';
-                            eta.className = 'floating-eta-badge stalled';
-                            eta.innerText = '⚠️ Gridlock · ' + (hazardAppName || 'Distraction');
+                            ringEl.className = 'beacon-ring anomaly';
+                            eta.className = 'telemetry-eta-pill anomaly';
+                            eta.innerText = 'ANOMALY: ' + (hazardAppName || 'HAZARD').toUpperCase();
                         } else if (state === 'pitStop') {
-                            icon.innerText = PITSTOP_EMOJI;
-                            icon.className = 'vehicle-icon';
-                            glow.className = 'vehicle-glow';
-                            eta.className = 'floating-eta-badge';
-                            eta.innerText = 'Pit Stop';
+                            ringEl.className = 'beacon-ring';
+                            eta.className = 'telemetry-eta-pill';
+                            eta.innerText = 'HOLD / PAUSED';
                         } else {
-                            icon.innerText = CRUISE_EMOJI;
-                            icon.className = 'vehicle-icon';
-                            glow.className = 'vehicle-glow';
-                            eta.className = 'floating-eta-badge';
-                            eta.innerText = etaText || (velocity + ' km/h');
+                            ringEl.className = 'beacon-ring';
+                            eta.className = 'telemetry-eta-pill';
+                            eta.innerText = etaText || (velocity + ' KM/H');
                         }
                     },
                     updateProgress: function(progress) {
@@ -382,14 +344,14 @@ public struct LiveRouteTrackingView: NSViewRepresentable {
                         const progressPoints = routeCoordinates.slice(0, targetIndex + 1);
                         progressPoints.push([curLng, curLat]);
 
-                        if (map.getSource('delivery-progress-route')) {
-                            map.getSource('delivery-progress-route').setData({
+                        if (map.getSource('laser-trajectory')) {
+                            map.getSource('laser-trajectory').setData({
                                 type: 'Feature', properties: {},
                                 geometry: { type: 'LineString', coordinates: progressPoints }
                             });
                         }
 
-                        courierMarker.setLngLat([curLng, curLat]);
+                        beaconMarker.setLngLat([curLng, curLat]);
                         map.easeTo({ center: [curLng, curLat], duration: 500 });
                     }
                 };

@@ -1,93 +1,84 @@
 import SwiftUI
 import KaruCore
 
-/// Tesla & Cybertruck-inspired Brutalist Cockpit Design System for Karu.
+/// SpaceX Crew Dragon & Starship inspired Aerospace Telemetry Design System for Karu.
 public enum KaruTheme {
-    // MARK: - Core Palette Tokens (Deep Obsidian / Matte Carbon)
-    public static let background = Color(hex: 0x07090E)
-    public static let surface = Color(hex: 0x0D111A)
-    public static let surfaceElevated = Color(hex: 0x141A26)
-    public static let surfaceHover = Color(hex: 0x1D2638)
-    public static let cardBorder = Color(hex: 0x222C3E).opacity(0.8)
-    public static let cardBorderActive = Color(hex: 0x00F0FF).opacity(0.4)
+    // MARK: - Core Palette Tokens (SpaceX Pure Black OLED)
+    public static let background = Color(hex: 0x000000)
+    public static let surface = Color(hex: 0x08080A)
+    public static let surfaceElevated = Color(hex: 0x121216)
+    public static let surfaceHover = Color(hex: 0x1C1C24)
+    public static let cardBorder = Color.white.opacity(0.12)
+    public static let cardBorderActive = Color(hex: 0x00E5FF).opacity(0.5)
     
-    // MARK: - Tesla Telemetry & FSD Energy Accents
-    public static let cyberCyan = Color(hex: 0x00F0FF)       // Primary Autopilot / Cruising
-    public static let racingTeal = Color(hex: 0x00F0FF)      // Backwards compatibility alias
-    public static let cruiseEmerald = Color(hex: 0x10B981)   // Focus completion
-    public static let cruiseNeon = Color(hex: 0x34D399)      // Bright emerald
-    public static let cyberOrange = Color(hex: 0xFF5E00)     // Hazard / Gridlock / Reverse
-    public static let hotCoral = Color(hex: 0xFF5E00)        // Distraction alert
-    public static let hazardAmber = Color(hex: 0xF59E0B)     // Neutral / Pit Stop
-    public static let hazardRed = Color(hex: 0xEF4444)       // Critical error
-    public static let navCyan = Color(hex: 0x00F0FF)         // Telemetry cyan
-    public static let navIndigo = Color(hex: 0x6366F1)       // Auxiliary
+    // MARK: - Aerospace Telemetry Accents
+    public static let telemetryCyan = Color(hex: 0x00E5FF)       // Nominal Flight / Active Trajectory
+    public static let cyberCyan = Color(hex: 0x00E5FF)          // Backwards alias
+    public static let racingTeal = Color(hex: 0x00E5FF)         // Backwards alias
+    public static let telemetryGreen = Color(hex: 0x30D158)      // Mission Docked / Complete
+    public static let cruiseEmerald = Color(hex: 0x30D158)      // Backwards alias
+    public static let cruiseNeon = Color(hex: 0x30D158)         // Backwards alias
+    public static let telemetryAmber = Color(hex: 0xFF9500)      // Mission Hold / Pit Stop
+    public static let hazardAmber = Color(hex: 0xFF9500)        // Backwards alias
+    public static let telemetryRed = Color(hex: 0xFF3B30)        // Flight Anomaly / Gridlock
+    public static let cyberOrange = Color(hex: 0xFF3B30)        // Backwards alias
+    public static let hotCoral = Color(hex: 0xFF3B30)           // Backwards alias
+    public static let hazardRed = Color(hex: 0xFF3B30)          // Backwards alias
+    public static let navCyan = Color(hex: 0x00E5FF)            // Navigation Cyan
     
     // MARK: - Typography Colors
     public static let textPrimary = Color.white
-    public static let textSecondary = Color(hex: 0x94A3B8)   // High-contrast chrome silver
-    public static let textMuted = Color(hex: 0x475569)       // Deep matte gray
-    public static let textDimmed = Color(hex: 0x2C364A)      // Gear unselected
+    public static let textSecondary = Color(hex: 0xA1A1AA)      // Aerospace silver
+    public static let textMuted = Color(hex: 0x52525B)          // Muted telemetry slate
+    public static let textDimmed = Color(hex: 0x27272A)
 
-    // MARK: - Brutalist Cockpit Fonts
-    public static let velocityDisplay = Font.system(size: 46, weight: .black, design: .rounded)
-    public static let telemetryDigits = Font.system(size: 32, weight: .black, design: .monospaced)
-    public static let telemetryGauge = Font.system(size: 20, weight: .bold, design: .monospaced)
-    public static let gearSelector = Font.system(size: 15, weight: .heavy, design: .monospaced)
-    public static let headerTitle = Font.system(size: 14, weight: .bold, design: .rounded)
-    public static let subheadline = Font.system(size: 12, weight: .medium, design: .default)
+    // MARK: - Monospaced Aerospace Fonts
+    public static let velocityDisplay = Font.system(size: 38, weight: .black, design: .monospaced)
+    public static let telemetryDigits = Font.system(size: 28, weight: .heavy, design: .monospaced)
+    public static let telemetryGauge = Font.system(size: 16, weight: .bold, design: .monospaced)
+    public static let headerTitle = Font.system(size: 13, weight: .bold, design: .monospaced)
+    public static let subheadline = Font.system(size: 11, weight: .medium, design: .monospaced)
     public static let captionMono = Font.system(size: 10, weight: .semibold, design: .monospaced)
     public static let statValue = Font.system(size: 13, weight: .bold, design: .monospaced)
     public static let statLabel = Font.system(size: 9, weight: .bold, design: .monospaced)
 
-    // MARK: - State-Driven Colors
+    // MARK: - State-Driven Resolvers
 
     /// Primary glow color for a given transit state.
     public static func statusGlow(for state: TransitState) -> Color {
         switch state {
         case .cruising:
-            return cyberCyan
+            return telemetryCyan
         case .trafficStalled:
-            return cyberOrange
+            return telemetryRed
         case .pitStop:
-            return hazardAmber
+            return telemetryAmber
         case .idle:
             return textSecondary
         case .completed:
-            return cruiseEmerald
+            return telemetryGreen
         }
     }
 
-    /// Gear indicator symbol for current transit state.
-    public static func gearLetter(for state: TransitState) -> String {
+    /// Flight stage status label.
+    public static func flightStage(for state: TransitState) -> String {
         switch state {
-        case .idle: return "P"
-        case .cruising: return "D"
-        case .pitStop: return "N"
-        case .trafficStalled: return "R"
-        case .completed: return "P"
+        case .idle: return "STANDBY"
+        case .cruising: return "NOMINAL"
+        case .pitStop: return "MISSION HOLD"
+        case .trafficStalled: return "ANOMALY"
+        case .completed: return "MISSION COMPLETE"
         }
     }
 
-    /// State telemetry subtitle.
-    public static func stateSubtitle(for state: TransitState) -> String {
-        switch state {
-        case .idle: return "PARKED · READY"
-        case .cruising: return "DRIVE · AUTOPILOT"
-        case .pitStop: return "NEUTRAL · PIT STOP"
-        case .trafficStalled: return "REVERSE · GRIDLOCK"
-        case .completed: return "ARRIVED · GOAL MET"
-        }
-    }
-
-    /// Racing stripe accent color for current state.
+    /// Accent border/glow color.
     public static func stripeAccent(for state: TransitState) -> Color {
         switch state {
-        case .cruising: return cyberCyan
-        case .trafficStalled: return cyberOrange
-        case .pitStop: return hazardAmber
+        case .cruising: return telemetryCyan
+        case .trafficStalled: return telemetryRed
+        case .pitStop: return telemetryAmber
         case .idle: return cardBorder
-        case .completed: return cruiseEmerald
+        case .completed: return telemetryGreen
         }
     }
 }

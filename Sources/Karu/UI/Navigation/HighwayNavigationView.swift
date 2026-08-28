@@ -22,7 +22,7 @@ public struct HighwayNavigationView: View {
             // Navigation Map Display (Live Courier Route Tracking or Isometric 2.5D Highway)
             ZStack {
                 if useRealWorld3DMap {
-                    LiveRouteTrackingView(engine: engine, cityRoute: selectedCityRoute, vehicleType: engine.activeVehicle)
+                    LiveRouteTrackingView(engine: engine, cityRoute: selectedCityRoute)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 } else {
                     // Background Night Sky / Distant Horizon Glow

@@ -1,7 +1,7 @@
 import SwiftUI
 import KaruCore
 
-/// Tesla & Cybertruck-inspired Brutalist Floating HUD with PRND telemetry, vector vehicle, and route lane.
+/// Ultra-minimalist SpaceX Dragon-inspired Floating Telemetry HUD for macOS.
 public struct FloatingHUDView: View {
     @Bindable public var engine: TransitEngine
     @Bindable public var scratchpadStore: ScratchpadStore
@@ -9,8 +9,8 @@ public struct FloatingHUDView: View {
 
     @State private var isHovering: Bool = false
     @State private var isScratchpadExpanded: Bool = false
-    @State private var isHighwayExpanded: Bool = false
-    @State private var ringProgress: CGFloat = 0.0
+    @State private var isMapExpanded: Bool = false
+    @State private var trajectoryProgress: CGFloat = 0.0
 
     public init(
         engine: TransitEngine,
@@ -24,45 +24,195 @@ public struct FloatingHUDView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            // ── 1. Title Bar with Tesla PRND Selector ──
-            titleBar
+            // ── 1. SpaceX Mission Header ──
+            HStack(spacing: 8) {
+                // Flight Status Badge
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(KaruTheme.statusGlow(for: engine.state))
+                        .frame(width: 5, height: 5)
+                    Text(KaruTheme.flightStage(for: engine.state))
+                        .font(.system(size: 8, weight: .black, design: .monospaced))
+                        .foregroundStyle(KaruTheme.statusGlow(for: engine.state))
+                }
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(KaruTheme.surfaceElevated)
+                .overlay(RoundedRectangle(cornerRadius: 2).stroke(KaruTheme.cardBorder, lineWidth: 1))
+                .clipShape(RoundedRectangle(cornerRadius: 2))
 
-            // Neon Cybertruck accent divider
+                Text("KARU")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .foregroundStyle(KaruTheme.textPrimary)
+                    .tracking(1.5)
+
+                Spacer()
+
+                // Velocity
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text("\(Int(engine.currentVelocity))")
+                        .font(.system(size: 15, weight: .black, design: .monospaced))
+                        .foregroundStyle(KaruTheme.statusGlow(for: engine.state))
+
+                    Text("KM/H")
+                        .font(.system(size: 7, weight: .bold, design: .monospaced))
+                        .foregroundStyle(KaruTheme.textMuted)
+                }
+
+                // Map Expand Toggle
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                        isMapExpanded.toggle()
+                        if isMapExpanded { isScratchpadExpanded = false }
+                    }
+                } label: {
+                    Image(systemName: "map.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(isMapExpanded ? KaruTheme.telemetryCyan : KaruTheme.textMuted)
+                }
+                .buttonStyle(.plain)
+
+                // Close Button
+                if isHovering {
+                    Button { onClose?() } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(KaruTheme.textMuted)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+
+            // 1px Trajectory Divider
             Rectangle()
                 .fill(KaruTheme.stripeAccent(for: engine.state))
-                .frame(height: 1.5)
-                .shadow(color: KaruTheme.stripeAccent(for: engine.state).opacity(0.6), radius: 3)
+                .frame(height: 1)
+                .shadow(color: KaruTheme.stripeAccent(for: engine.state).opacity(0.8), radius: 2)
 
-            VStack(spacing: 8) {
-                // ── 2. Telemetry Gauge Row ──
-                speedometerSection
+            VStack(spacing: 6) {
+                // ── 2. Laser Progress Trajectory Line ──
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 1)
+                            .fill(KaruTheme.surfaceElevated)
+                            .frame(height: 2.5)
 
-                // ── 3. Route Progress Lane ──
-                routeProgressLane
+                        RoundedRectangle(cornerRadius: 1)
+                            .fill(KaruTheme.telemetryCyan)
+                            .frame(width: geo.size.width * trajectoryProgress, height: 2.5)
+                            .shadow(color: KaruTheme.telemetryCyan.opacity(0.8), radius: 3)
+                    }
+                    .frame(height: 2.5)
+                    .position(x: geo.size.width / 2, y: geo.size.height / 2)
+                }
+                .frame(height: 4)
 
-                // ── 4. Session Stats ──
-                sessionStats
+                // ── 3. Modular Telemetry Stats ──
+                HStack(spacing: 4) {
+                    if let session = engine.activeSession {
+                        statPill(
+                            value: "\(Int(session.cruisingDuration) / 60)M",
+                            label: "FLIGHT",
+                            color: KaruTheme.telemetryCyan
+                        )
 
-                // ── 5. Control Bar ──
-                controlBar
+                        let efficiency = session.cruiseEfficiency
+                        statPill(
+                            value: "\(Int(efficiency))%",
+                            label: "EFF",
+                            color: efficiency >= 80 ? KaruTheme.telemetryGreen : KaruTheme.telemetryAmber
+                        )
+
+                        statPill(
+                            value: "\(session.incidents.count)",
+                            label: "HAZARDS",
+                            color: session.incidents.isEmpty ? KaruTheme.textMuted : KaruTheme.telemetryRed
+                        )
+                    } else {
+                        statPill(value: "--", label: "FLIGHT", color: KaruTheme.textMuted)
+                        statPill(value: "--", label: "EFF", color: KaruTheme.textMuted)
+                        statPill(value: "--", label: "HAZARDS", color: KaruTheme.textMuted)
+                    }
+                }
+
+                // ── 4. Flight Actions ──
+                HStack(spacing: 5) {
+                    Button {
+                        handlePrimaryAction()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: primaryActionIcon)
+                                .font(.system(size: 8, weight: .bold))
+                            Text(primaryActionLabel)
+                                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                        .background(KaruTheme.telemetryCyan)
+                        .foregroundStyle(Color.black)
+                        .clipShape(RoundedRectangle(cornerRadius: 2))
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                            isScratchpadExpanded.toggle()
+                            if isScratchpadExpanded { isMapExpanded = false }
+                        }
+                    } label: {
+                        HStack(spacing: 2) {
+                            Image(systemName: "note.text").font(.system(size: 7))
+                            Text("LOG").font(.system(size: 7, weight: .bold, design: .monospaced))
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 4)
+                        .background(KaruTheme.surfaceElevated)
+                        .foregroundStyle(isScratchpadExpanded ? KaruTheme.telemetryCyan : KaruTheme.textSecondary)
+                        .overlay(RoundedRectangle(cornerRadius: 2).stroke(KaruTheme.cardBorder, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 2))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
 
-            // ── 6. Expandable Panels ──
-            expandablePanels
+            // ── 5. Expandable Panels (Map / Log) ──
+            if isMapExpanded {
+                VStack(spacing: 0) {
+                    Rectangle().fill(KaruTheme.cardBorder).frame(height: 1)
+                    LiveRouteTrackingView(engine: engine)
+                        .frame(height: 130)
+                        .padding(4)
+                }
+            }
+
+            if isScratchpadExpanded {
+                VStack(spacing: 0) {
+                    Rectangle().fill(KaruTheme.cardBorder).frame(height: 1)
+                    TextEditor(text: $scratchpadStore.notes)
+                        .font(.system(size: 10, design: .monospaced))
+                        .frame(height: 55)
+                        .scrollContentBackground(.hidden)
+                        .background(KaruTheme.surfaceElevated)
+                        .clipShape(RoundedRectangle(cornerRadius: 2))
+                        .padding(6)
+                }
+            }
         }
-        .frame(width: isHighwayExpanded ? 320 : 270)
+        .frame(width: isMapExpanded ? 300 : 250)
         .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(KaruTheme.background.opacity(0.95))
-                .shadow(color: Color.black.opacity(0.6), radius: 14, x: 0, y: 4)
+            RoundedRectangle(cornerRadius: 6)
+                .fill(KaruTheme.background.opacity(0.96))
+                .shadow(color: Color.black.opacity(0.7), radius: 10, x: 0, y: 3)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: 6)
                 .stroke(KaruTheme.cardBorder, lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.15)) {
                 isHovering = hovering
@@ -70,173 +220,7 @@ public struct FloatingHUDView: View {
         }
         .onChange(of: engine.activeSession?.progressFraction) { _, newVal in
             withAnimation(.easeInOut(duration: 0.5)) {
-                ringProgress = CGFloat(newVal ?? 0.0)
-            }
-        }
-    }
-
-    // MARK: - 1. Title Bar
-
-    private var titleBar: some View {
-        HStack(spacing: 8) {
-            // Mini PRND Gear Cluster
-            TeslaGearSelectorView(state: engine.state, showEnergyBar: false)
-
-            Text("KARU")
-                .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                .foregroundStyle(KaruTheme.textPrimary)
-                .tracking(1.5)
-
-            Spacer()
-
-            // State label
-            Text(KaruTheme.stateSubtitle(for: engine.state))
-                .font(.system(size: 7, weight: .bold, design: .monospaced))
-                .foregroundStyle(KaruTheme.statusGlow(for: engine.state))
-                .padding(.horizontal, 5)
-                .padding(.vertical, 2)
-                .background(KaruTheme.surfaceElevated)
-                .clipShape(RoundedRectangle(cornerRadius: 3))
-
-            // Highway toggle
-            Button {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                    isHighwayExpanded.toggle()
-                    if isHighwayExpanded { isScratchpadExpanded = false }
-                }
-            } label: {
-                Image(systemName: "road.lanes.curved.right")
-                    .font(.system(size: 10))
-                    .foregroundStyle(isHighwayExpanded ? KaruTheme.cyberCyan : KaruTheme.textMuted)
-            }
-            .buttonStyle(.plain)
-
-            // Close button (on hover)
-            if isHovering {
-                Button { onClose?() } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 10))
-                        .foregroundStyle(KaruTheme.textMuted)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
-    }
-
-    // MARK: - 2. Speedometer Section
-
-    private var speedometerSection: some View {
-        HStack(alignment: .center, spacing: 10) {
-            // Vector Vehicle Mini Twin
-            VehicleDigitalTwinView(
-                vehicle: engine.activeVehicle,
-                state: engine.state,
-                size: CGSize(width: 32, height: 50)
-            )
-
-            // Speedometer Digits
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Text("\(Int(engine.currentVelocity))")
-                        .font(.system(size: 26, weight: .black, design: .monospaced))
-                        .foregroundStyle(KaruTheme.statusGlow(for: engine.state))
-
-                    Text("KM/H")
-                        .font(.system(size: 8, weight: .bold, design: .monospaced))
-                        .foregroundStyle(KaruTheme.textMuted)
-                }
-
-                Text(engine.activeVehicle.name.uppercased())
-                    .font(.system(size: 8, weight: .bold, design: .monospaced))
-                    .foregroundStyle(KaruTheme.textSecondary)
-                    .lineLimit(1)
-            }
-
-            Spacer()
-
-            // Battery / Focus % Pill
-            if let session = engine.activeSession {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(Int(session.cruiseEfficiency))% EFF")
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        .foregroundStyle(KaruTheme.cyberCyan)
-
-                    if let target = session.targetDuration {
-                        let remaining = max(0, target - session.cruisingDuration)
-                        let mins = Int(remaining) / 60
-                        Text("\(mins)M LEFT")
-                            .font(.system(size: 8, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(KaruTheme.textMuted)
-                    }
-                }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 4)
-                .background(KaruTheme.surfaceElevated)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-                .overlay(RoundedRectangle(cornerRadius: 4).stroke(KaruTheme.cardBorder, lineWidth: 1))
-            }
-        }
-    }
-
-    // MARK: - 3. Route Progress Lane
-
-    private var routeProgressLane: some View {
-        VStack(spacing: 3) {
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    // Dark highway track
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(KaruTheme.surfaceElevated)
-                        .frame(height: 3.5)
-
-                    // Autopilot Progress Beam
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(
-                            LinearGradient(
-                                colors: [KaruTheme.cyberCyan, KaruTheme.cruiseEmerald],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: geo.size.width * ringProgress, height: 3.5)
-                        .shadow(color: KaruTheme.cyberCyan.opacity(0.6), radius: 3)
-                }
-                .frame(height: 3.5)
-                .position(x: geo.size.width / 2, y: geo.size.height / 2)
-            }
-            .frame(height: 6)
-        }
-    }
-
-    // MARK: - 4. Session Stats
-
-    private var sessionStats: some View {
-        HStack(spacing: 4) {
-            if let session = engine.activeSession {
-                statPill(
-                    value: "\(Int(session.cruisingDuration) / 60)M",
-                    label: "FOCUS",
-                    color: KaruTheme.cruiseEmerald
-                )
-
-                let efficiency = session.cruiseEfficiency
-                statPill(
-                    value: "\(Int(efficiency))%",
-                    label: "EFF",
-                    color: efficiency >= 80 ? KaruTheme.cyberCyan : KaruTheme.hazardAmber
-                )
-
-                statPill(
-                    value: "\(session.incidents.count)",
-                    label: "HAZARDS",
-                    color: session.incidents.isEmpty ? KaruTheme.textMuted : KaruTheme.cyberOrange
-                )
-            } else {
-                statPill(value: "--", label: "FOCUS", color: KaruTheme.textMuted)
-                statPill(value: "--", label: "EFF", color: KaruTheme.textMuted)
-                statPill(value: "--", label: "HAZARDS", color: KaruTheme.textMuted)
+                trajectoryProgress = CGFloat(newVal ?? 0.0)
             }
         }
     }
@@ -244,104 +228,18 @@ public struct FloatingHUDView: View {
     private func statPill(value: String, label: String, color: Color) -> some View {
         VStack(spacing: 1) {
             Text(value)
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .font(.system(size: 10, weight: .heavy, design: .monospaced))
                 .foregroundStyle(color)
             Text(label)
-                .font(.system(size: 7, weight: .heavy, design: .monospaced))
+                .font(.system(size: 6.5, weight: .black, design: .monospaced))
                 .foregroundStyle(KaruTheme.textMuted)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 4)
+        .padding(.vertical, 3)
         .background(KaruTheme.surfaceElevated)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
-        .overlay(RoundedRectangle(cornerRadius: 4).stroke(KaruTheme.cardBorder, lineWidth: 0.8))
+        .clipShape(RoundedRectangle(cornerRadius: 2))
+        .overlay(RoundedRectangle(cornerRadius: 2).stroke(KaruTheme.cardBorder, lineWidth: 0.8))
     }
-
-    // MARK: - 5. Control Bar
-
-    private var controlBar: some View {
-        HStack(spacing: 6) {
-            // Primary action button
-            Button {
-                handlePrimaryAction()
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: primaryActionIcon)
-                        .font(.system(size: 9, weight: .bold))
-                    Text(primaryActionLabel)
-                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 5)
-                .background(
-                    LinearGradient(
-                        colors: [KaruTheme.cyberCyan, KaruTheme.cruiseEmerald],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .foregroundStyle(Color.black)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-            }
-            .buttonStyle(.plain)
-
-            // Pit Stop / Scratchpad
-            Button {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                    isScratchpadExpanded.toggle()
-                    if isScratchpadExpanded { isHighwayExpanded = false }
-                }
-            } label: {
-                HStack(spacing: 3) {
-                    Image(systemName: "note.text")
-                        .font(.system(size: 8))
-                    Text("LOG")
-                        .font(.system(size: 8, weight: .bold, design: .monospaced))
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .background(KaruTheme.surfaceElevated)
-                .foregroundStyle(isScratchpadExpanded ? KaruTheme.cyberCyan : KaruTheme.textSecondary)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-                .overlay(RoundedRectangle(cornerRadius: 4).stroke(KaruTheme.cardBorder, lineWidth: 1))
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    // MARK: - 6. Expandable Panels
-
-    @ViewBuilder
-    private var expandablePanels: some View {
-        if isHighwayExpanded {
-            VStack(spacing: 0) {
-                Rectangle()
-                    .fill(KaruTheme.cardBorder)
-                    .frame(height: 1)
-                HighwayNavigationView(engine: engine)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 4)
-            }
-        }
-
-        if isScratchpadExpanded {
-            VStack(spacing: 0) {
-                Rectangle()
-                    .fill(KaruTheme.cardBorder)
-                    .frame(height: 1)
-                TextEditor(text: $scratchpadStore.notes)
-                    .font(.system(size: 11, design: .monospaced))
-                    .frame(height: 65)
-                    .scrollContentBackground(.hidden)
-                    .background(KaruTheme.surfaceElevated)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 4)
-            }
-        }
-    }
-
-    // MARK: - Helpers
 
     private var primaryActionIcon: String {
         switch engine.state {
@@ -355,11 +253,11 @@ public struct FloatingHUDView: View {
 
     private var primaryActionLabel: String {
         switch engine.state {
-        case .idle: return "START"
-        case .cruising: return "PIT STOP"
+        case .idle: return "LAUNCH"
+        case .cruising: return "HOLD"
         case .trafficStalled: return "REFOCUS"
         case .pitStop: return "RESUME"
-        case .completed: return "NEW TRIP"
+        case .completed: return "NEW MISSION"
         }
     }
 
