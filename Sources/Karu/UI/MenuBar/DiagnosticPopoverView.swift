@@ -71,7 +71,10 @@ public struct DiagnosticPopoverView: View {
 
     // MARK: - Telemetry Header
     private var telemetryHeader: some View {
-        HStack(alignment: .center, spacing: 14) {
+        HStack(alignment: .center, spacing: 12) {
+            // Mascot
+            KaruMascotView(state: engine.state, size: 42)
+
             // Speedometer Gauge Pill
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
