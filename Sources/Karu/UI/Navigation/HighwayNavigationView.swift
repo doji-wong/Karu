@@ -7,6 +7,7 @@ public struct HighwayNavigationView: View {
 
     // Animation state for continuous highway road markings
     @State private var roadOffset: CGFloat = 0.0
+    @State private var useRealWorld3DMap: Bool = false
 
     public init(engine: TransitEngine) {
         self.engine = engine
@@ -14,53 +15,58 @@ public struct HighwayNavigationView: View {
 
     public var body: some View {
         VStack(spacing: 8) {
-            // Lane Telemetry Banner (Waze Navigation Header)
+            // Lane Telemetry Banner (Waze Navigation Header with 3D Map Toggle)
             laneHeaderBanner
 
-            // 2.5D Perspective Highway Roadbed
+            // Navigation Map Display (OpenFreeMap 3D or Isometric 2.5D Highway)
             ZStack {
-                // Background Night Sky / Distant Horizon Glow
-                horizonGlow
+                if useRealWorld3DMap {
+                    OpenFreeMapView(engine: engine)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                } else {
+                    // Background Night Sky / Distant Horizon Glow
+                    horizonGlow
 
-                // Perspective Roadbed Canvas
-                PerspectiveRoadShape()
-                    .fill(
-                        LinearGradient(
-                            colors: [KaruTheme.surfaceElevated, KaruTheme.surface.opacity(0.9)],
-                            startPoint: .top,
-                            endPoint: .bottom
+                    // Perspective Roadbed Canvas
+                    PerspectiveRoadShape()
+                        .fill(
+                            LinearGradient(
+                                colors: [KaruTheme.surfaceElevated, KaruTheme.surface.opacity(0.9)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
                         )
-                    )
-                    .overlay(
-                        PerspectiveRoadShape()
-                            .stroke(KaruTheme.cardBorder, lineWidth: 1.5)
-                    )
+                        .overlay(
+                            PerspectiveRoadShape()
+                                .stroke(KaruTheme.cardBorder, lineWidth: 1.5)
+                        )
 
-                // Neon Side Curbs / Guard Rails
-                RoadGuardRails(glowColor: KaruTheme.statusGlow(for: engine.state))
+                    // Neon Side Curbs / Guard Rails
+                    RoadGuardRails(glowColor: KaruTheme.statusGlow(for: engine.state))
 
-                // Animated Center-line Road Markings
-                TimelineView(.animation(paused: engine.state != .cruising)) { timeline in
-                    RoadMarkingsView(offset: roadOffset)
-                        .onChange(of: timeline.date) { _, _ in
-                            if engine.state == .cruising {
-                                roadOffset = (roadOffset + 4.0).truncatingRemainder(dividingBy: 40.0)
+                    // Animated Center-line Road Markings
+                    TimelineView(.animation(paused: engine.state != .cruising)) { timeline in
+                        RoadMarkingsView(offset: roadOffset)
+                            .onChange(of: timeline.date) { _, _ in
+                                if engine.state == .cruising {
+                                    roadOffset = (roadOffset + 4.0).truncatingRemainder(dividingBy: 40.0)
+                                }
                             }
-                        }
+                    }
+
+                    // Waze-Style Traffic Hazard Pins
+                    if let session = engine.activeSession {
+                        hazardPinsOverlay(session: session)
+                    }
+
+                    // Active Vehicle Avatar on the Road
+                    vehicleAvatarView
+
+                    // Waypoint Markers (Start, 50% Milestone, Destination)
+                    waypointsOverlay
                 }
-
-                // Waze-Style Traffic Hazard Pins
-                if let session = engine.activeSession {
-                    hazardPinsOverlay(session: session)
-                }
-
-                // Active Vehicle Avatar on the Road
-                vehicleAvatarView
-
-                // Waypoint Markers (Start, 50% Milestone, Destination)
-                waypointsOverlay
             }
-            .frame(height: 140)
+            .frame(height: 150)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
@@ -106,10 +112,31 @@ public struct HighwayNavigationView: View {
 
             Spacer()
 
+            // 3D Map / Highway View Toggle
+            Button {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                    useRealWorld3DMap.toggle()
+                }
+            } label: {
+                HStack(spacing: 3) {
+                    Image(systemName: useRealWorld3DMap ? "globe.americas.fill" : "road.lanes")
+                        .font(.system(size: 9))
+                    Text(useRealWorld3DMap ? "3D MAP" : "HIGHWAY")
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(useRealWorld3DMap ? KaruTheme.navCyan.opacity(0.2) : KaruTheme.surfaceElevated)
+                .foregroundStyle(useRealWorld3DMap ? KaruTheme.navCyan : KaruTheme.textSecondary)
+                .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .help("Toggle between OpenFreeMap 3D and 2.5D Highway")
+
             if let session = engine.activeSession, let target = session.targetDuration {
                 let remaining = max(0, target - session.cruisingDuration)
                 let mins = Int(remaining) / 60
-                Text("ETA \(mins) MIN")
+                Text("ETA \(mins)m")
                     .font(KaruTheme.captionMono)
                     .foregroundStyle(KaruTheme.textPrimary)
             } else {
