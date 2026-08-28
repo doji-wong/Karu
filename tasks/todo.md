@@ -85,15 +85,15 @@
 ---
 
 ## Phase 6: macOS UI & Windowing Layer (`macos-windowing-ui`)
-- [ ] **Task 6.1: Implement KaruTheme Design System**
-  - **Files:** `Sources/UI/Theme/KaruTheme.swift`
-- [ ] **Task 6.2: Implement MenuBarController & DiagnosticPopoverView**
-  - **Files:** `Sources/UI/MenuBar/MenuBarController.swift`, `Sources/UI/MenuBar/DiagnosticPopoverView.swift`
-- [ ] **Task 6.3: Implement NotchWindowController & NotchWingsView**
-  - **Files:** `Sources/UI/Notch/NotchWindowController.swift`, `Sources/UI/Notch/NotchWingsView.swift`
-- [ ] **Task 6.4: Implement FloatingHUDPanel & FloatingHUDView**
-  - **Files:** `Sources/UI/FloatingHUD/FloatingHUDPanel.swift`, `Sources/UI/FloatingHUD/FloatingHUDView.swift`
-- [ ] **Task 6.5: Implement ScratchpadView, GarageHangarView & Settings**
-  - **Files:** `Sources/UI/Scratchpad/ScratchpadView.swift`, `Sources/UI/Garage/GarageHangarView.swift`, `Sources/UI/Settings/AppFilterSettingsView.swift`
-- [ ] **Task 6.6: Wire App Entry Point (KaruApp & AppDelegate)**
+- [x] **Task 6.1: Implement KaruTheme Design System**
+  - **Files:** `Sources/Karu/UI/Theme/KaruTheme.swift`
+- [x] **Task 6.2: Implement MenuBarController & DiagnosticPopoverView**
+  - **Files:** `Sources/Karu/UI/MenuBar/MenuBarController.swift`, `Sources/Karu/UI/MenuBar/DiagnosticPopoverView.swift`
+- [x] **Task 6.3: Implement NotchWindowController & NotchWingsView**
+  - **Files:** `Sources/Karu/UI/Notch/NotchWindowController.swift`, `Sources/Karu/UI/Notch/NotchWingsView.swift`
+- [x] **Task 6.4: Implement FloatingHUDPanel & FloatingHUDView**
+  - **Files:** `Sources/Karu/UI/FloatingHUD/FloatingHUDPanel.swift`, `Sources/Karu/UI/FloatingHUD/FloatingHUDView.swift`
+- [x] **Task 6.5: Implement ScratchpadView, GarageHangarView & Settings**
+  - **Files:** `Sources/Karu/UI/Scratchpad/ScratchpadView.swift`, `Sources/Karu/UI/Garage/GarageHangarView.swift`, `Sources/Karu/UI/Settings/AppFilterSettingsView.swift`
+- [x] **Task 6.6: Wire App Entry Point (KaruApp & AppDelegate)**
   - **Files:** `Sources/Karu/KaruApp.swift`, `Sources/Karu/AppDelegate.swift`
