@@ -164,7 +164,7 @@ public struct LiveRouteTrackingView: NSViewRepresentable {
 
                 const map = new maplibregl.Map({
                     container: 'map',
-                    style: 'https://tiles.openfreemap.org/styles/bright',
+                    style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
                     center: [121.034, 14.551],
                     zoom: 13.5,
                     interactive: false,
