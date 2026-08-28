@@ -1,42 +1,42 @@
 # Actionable Task List: Karu Implementation
 
 ## Phase 1: Package Manifest & Core Models (`karu-models`)
-- [ ] **Task 1.1: Create Swift Package Manifest**
+- [x] **Task 1.1: Create Swift Package Manifest**
   - **Acceptance:** `Package.swift` targets macOS 14+, defines `KaruCore` library, `Karu` app target, and `KaruTests` test suite.
   - **Verify:** `swift package describe`
   - **Files:** `Package.swift`
-- [ ] **Task 1.2: Implement Transit State & Telemetry Models**
+- [x] **Task 1.2: Implement Transit State & Telemetry Models**
   - **Acceptance:** `TransitState.swift` defines `.idle`, `.cruising`, `.trafficStalled`, `.pitStop`, `.completed` with velocity formatting and state indicators.
   - **Verify:** `swift test --filter ModelTests`
-  - **Files:** `Sources/Models/TransitState.swift`
-- [ ] **Task 1.3: Implement App Filter Rule & Preset Models**
+  - **Files:** `Sources/KaruCore/Models/TransitState.swift`
+- [x] **Task 1.3: Implement App Filter Rule & Preset Models**
   - **Acceptance:** `AppFilterRule.swift` defines `AppFocusCategory`, custom bundle rules, and Developer/Student/Writer default presets.
   - **Verify:** `swift test --filter ModelTests`
-  - **Files:** `Sources/Models/AppFilterRule.swift`
-- [ ] **Task 1.4: Implement Trip Session, Habit & Vehicle Models**
+  - **Files:** `Sources/KaruCore/Models/AppFilterRule.swift`
+- [x] **Task 1.4: Implement Trip Session, Habit & Vehicle Models**
   - **Acceptance:** `TripSession.swift`, `Habit.swift`, and `VehicleProfile.swift` conform to `Codable`, `Identifiable`, `Sendable`.
   - **Verify:** `swift test --filter ModelTests`
-  - **Files:** `Sources/Models/TripSession.swift`, `Sources/Models/Habit.swift`, `Sources/Models/VehicleProfile.swift`
-- [ ] **Task 1.5: Write Model Unit Tests**
+  - **Files:** `Sources/KaruCore/Models/TripSession.swift`, `Sources/KaruCore/Models/Habit.swift`, `Sources/KaruCore/Models/VehicleProfile.swift`
+- [x] **Task 1.5: Write Model Unit Tests**
   - **Acceptance:** `ModelTests.swift` passes 100% assertions for serialization and model logic.
   - **Verify:** `swift test --filter ModelTests`
-  - **Files:** `Tests/CoreTests/ModelTests.swift`
+  - **Files:** `Tests/KaruCoreTests/ModelTests.swift`
 
 ---
 
 ## Phase 2: Transit Engine & Math Core (`transit-engine`)
-- [ ] **Task 2.1: Implement TransitEngine State Machine**
+- [x] **Task 2.1: Implement TransitEngine State Machine**
   - **Acceptance:** Manages cruise speed (100 km/h) vs stalled speed (0 km/h), ticks, distance, and pit stops.
   - **Verify:** `swift test --filter TransitEngineTests`
-  - **Files:** `Sources/Core/TransitEngine.swift`
-- [ ] **Task 2.2: Implement Efficiency Math & Incident Logging**
+  - **Files:** `Sources/KaruCore/Core/TransitEngine.swift`
+- [x] **Task 2.2: Implement Efficiency Math & Incident Logging**
   - **Acceptance:** Computes cruise efficiency percentage accurately; records `TrafficIncident` events when entering stall state.
   - **Verify:** `swift test --filter TransitEngineTests`
-  - **Files:** `Sources/Core/TransitEngine.swift`
-- [ ] **Task 2.3: Write TransitEngine Unit Tests**
+  - **Files:** `Sources/KaruCore/Core/TransitEngine.swift`
+- [x] **Task 2.3: Write TransitEngine Unit Tests**
   - **Acceptance:** Tests verify state transitions, elapsed timers, pause/resume, and math formulas.
   - **Verify:** `swift test --filter TransitEngineTests`
-  - **Files:** `Tests/CoreTests/TransitEngineTests.swift`
+  - **Files:** `Tests/KaruCoreTests/TransitEngineTests.swift`
 
 ---
 
