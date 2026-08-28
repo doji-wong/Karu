@@ -8,6 +8,7 @@ public struct HighwayNavigationView: View {
     // Animation state for continuous highway road markings
     @State private var roadOffset: CGFloat = 0.0
     @State private var useRealWorld3DMap: Bool = false
+    @State private var selectedCityRoute: CityRoutePreset = .manilaBGC
 
     public init(engine: TransitEngine) {
         self.engine = engine
@@ -21,7 +22,7 @@ public struct HighwayNavigationView: View {
             // Navigation Map Display (Live Courier Route Tracking or Isometric 2.5D Highway)
             ZStack {
                 if useRealWorld3DMap {
-                    LiveRouteTrackingView(engine: engine)
+                    LiveRouteTrackingView(engine: engine, cityRoute: selectedCityRoute, vehicleType: engine.activeVehicle)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 } else {
                     // Background Night Sky / Distant Horizon Glow
@@ -112,6 +113,32 @@ public struct HighwayNavigationView: View {
 
             Spacer()
 
+            // City Route Picker (visible in Live Tracking mode)
+            if useRealWorld3DMap {
+                Menu {
+                    ForEach(CityRoutePreset.allCases) { city in
+                        Button(city.rawValue) {
+                            selectedCityRoute = city
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "map.fill")
+                            .font(.system(size: 8))
+                        Text(selectedCityRoute.rawValue.components(separatedBy: " ").prefix(2).joined(separator: " "))
+                            .font(.system(size: 8, weight: .bold, design: .monospaced))
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(KaruTheme.surfaceElevated)
+                    .foregroundStyle(KaruTheme.navCyan)
+                    .clipShape(Capsule())
+                }
+                .menuStyle(.borderlessButton)
+                .help("Select your city route")
+            }
+
             // Live Tracking / Highway View Toggle
             Button {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
@@ -121,7 +148,7 @@ public struct HighwayNavigationView: View {
                 HStack(spacing: 3) {
                     Image(systemName: useRealWorld3DMap ? "location.north.line.fill" : "road.lanes")
                         .font(.system(size: 9))
-                    Text(useRealWorld3DMap ? "LIVE TRACKING" : "HIGHWAY")
+                    Text(useRealWorld3DMap ? "LIVE" : "HIGHWAY")
                         .font(.system(size: 8, weight: .bold, design: .monospaced))
                 }
                 .padding(.horizontal, 6)
