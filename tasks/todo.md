@@ -73,14 +73,14 @@
 ---
 
 ## Phase 5: Ambient Audio Engine (`audio-engine`)
-- [ ] **Task 5.1: Implement AudioEngine with AVAudioEngine**
+- [x] **Task 5.1: Implement AudioEngine with AVAudioEngine**
   - **Acceptance:** Low-latency playback with 400ms crossfade between cruise and stall nodes.
   - **Verify:** `swift test --filter AudioEngineTests`
-  - **Files:** `Sources/Core/AudioEngine.swift`
-- [ ] **Task 5.2: Write AudioEngine Unit Tests**
+  - **Files:** `Sources/KaruCore/Core/AudioEngine.swift`
+- [x] **Task 5.2: Write AudioEngine Unit Tests**
   - **Acceptance:** Verifies volume ramps, state transitions, and node attachment.
   - **Verify:** `swift test --filter AudioEngineTests`
-  - **Files:** `Tests/CoreTests/AudioEngineTests.swift`
+  - **Files:** `Tests/KaruCoreTests/AudioEngineTests.swift`
 
 ---
 

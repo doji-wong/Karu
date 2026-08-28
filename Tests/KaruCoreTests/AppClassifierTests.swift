@@ -69,17 +69,20 @@ struct AppClassifierTests {
     @Test("DistractionMonitor simulation dispatches category and metadata")
     @MainActor
     func distractionMonitorSimulation() {
+        final class EventRecorder: @unchecked Sendable {
+            var category: AppFocusCategory?
+            var appName: String?
+            var bundleId: String?
+        }
+
+        let recorder = EventRecorder()
         let classifier = AppClassifier(activePreset: .developer)
         let monitor = DistractionMonitor(classifier: classifier)
 
-        var receivedCategory: AppFocusCategory?
-        var receivedAppName: String?
-        var receivedBundleId: String?
-
         monitor.onAppActivated = { category, name, bundle in
-            receivedCategory = category
-            receivedAppName = name
-            receivedBundleId = bundle
+            recorder.category = category
+            recorder.appName = name
+            recorder.bundleId = bundle
         }
 
         monitor.simulateApplicationSwitch(
@@ -87,8 +90,8 @@ struct AppClassifierTests {
             appName: "Xcode"
         )
 
-        #expect(receivedCategory == .focusWorkspace)
-        #expect(receivedAppName == "Xcode")
-        #expect(receivedBundleId == "com.apple.dt.Xcode")
+        #expect(recorder.category == .focusWorkspace)
+        #expect(recorder.appName == "Xcode")
+        #expect(recorder.bundleId == "com.apple.dt.Xcode")
     }
 }
