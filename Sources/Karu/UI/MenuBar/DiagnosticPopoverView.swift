@@ -218,44 +218,8 @@ public struct DiagnosticPopoverView: View {
     private var activeFlightSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             if let session = engine.activeSession {
-                // Route Progress Bar
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Text(session.preset.displayName)
-                            .font(KaruTheme.captionMono)
-                            .foregroundStyle(KaruTheme.textSecondary)
-                        Spacer()
-                        if let target = session.targetDuration {
-                            let remaining = max(0, target - session.cruisingDuration)
-                            Text("\(formattedTime(remaining)) remaining")
-                                .font(KaruTheme.captionMono)
-                                .foregroundStyle(KaruTheme.navCyan)
-                        } else {
-                            Text("Open Run")
-                                .font(KaruTheme.captionMono)
-                                .foregroundStyle(KaruTheme.textMuted)
-                        }
-                    }
-
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(KaruTheme.surfaceElevated)
-                                .frame(height: 8)
-
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [KaruTheme.navCyan, KaruTheme.cruiseEmerald],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .frame(width: geo.size.width * CGFloat(session.progressFraction), height: 8)
-                        }
-                    }
-                    .frame(height: 8)
-                }
+                // Waze-Style Live Highway Navigation Map
+                HighwayNavigationView(engine: engine)
 
                 // In-Flight Scratchpad Tab Selector
                 Picker("", selection: $activeTab) {

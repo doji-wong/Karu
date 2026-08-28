@@ -1,7 +1,7 @@
 import SwiftUI
 import KaruCore
 
-/// Ultra-compact translucent glassmorphism floating HUD view.
+/// Ultra-compact translucent glassmorphism floating HUD view with mini highway toggle.
 public struct FloatingHUDView: View {
     @Bindable public var engine: TransitEngine
     @Bindable public var scratchpadStore: ScratchpadStore
@@ -9,6 +9,7 @@ public struct FloatingHUDView: View {
 
     @State private var isHovering: Bool = false
     @State private var isScratchpadExpanded: Bool = false
+    @State private var isHighwayExpanded: Bool = false
 
     public init(
         engine: TransitEngine,
@@ -58,10 +59,25 @@ public struct FloatingHUDView: View {
 
                 Spacer()
 
+                // Highway Mini-Map Expand Toggle
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                        isHighwayExpanded.toggle()
+                        if isHighwayExpanded { isScratchpadExpanded = false }
+                    }
+                } label: {
+                    Image(systemName: "road.lanes.curved.right")
+                        .font(.system(size: 11))
+                        .foregroundStyle(isHighwayExpanded ? KaruTheme.cruiseNeon : KaruTheme.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .help("Toggle Mini Highway Navigation")
+
                 // Scratchpad Expand Toggle
                 Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                         isScratchpadExpanded.toggle()
+                        if isScratchpadExpanded { isHighwayExpanded = false }
                     }
                 } label: {
                     Image(systemName: isScratchpadExpanded ? "note.text.badge.plus" : "note.text")
@@ -69,6 +85,7 @@ public struct FloatingHUDView: View {
                         .foregroundStyle(isScratchpadExpanded ? KaruTheme.navCyan : KaruTheme.textSecondary)
                 }
                 .buttonStyle(.plain)
+                .help("Toggle In-Flight Scratchpad")
 
                 // Close Overlay Button
                 if isHovering {
@@ -85,6 +102,16 @@ public struct FloatingHUDView: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
 
+            // Expandable Waze Highway Map
+            if isHighwayExpanded {
+                VStack(spacing: 4) {
+                    Divider().background(KaruTheme.cardBorder)
+                    HighwayNavigationView(engine: engine)
+                        .padding(.horizontal, 8)
+                        .padding(.bottom, 6)
+                }
+            }
+
             // Expandable Scratchpad
             if isScratchpadExpanded {
                 VStack(spacing: 4) {
@@ -100,11 +127,11 @@ public struct FloatingHUDView: View {
                 }
             }
         }
-        .frame(width: 260)
+        .frame(width: isHighwayExpanded ? 320 : 270)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(KaruTheme.background.opacity(0.9))
-                .shadow(color: Color.black.opacity(0.4), radius: 10, x: 0, y: 4)
+                .fill(KaruTheme.background.opacity(0.92))
+                .shadow(color: Color.black.opacity(0.5), radius: 12, x: 0, y: 4)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12)
