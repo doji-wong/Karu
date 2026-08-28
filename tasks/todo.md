@@ -57,18 +57,18 @@
 ---
 
 ## Phase 4: Local Persistence & In-Flight Scratchpad (`local-storage`)
-- [ ] **Task 4.1: Implement LocalStorageManager**
+- [x] **Task 4.1: Implement LocalStorageManager**
   - **Acceptance:** Atomic JSON read/write in `Application Support/Karu/` with error recovery.
   - **Verify:** `swift test --filter LocalStorageTests`
-  - **Files:** `Sources/Storage/LocalStorageManager.swift`
-- [ ] **Task 4.2: Implement ScratchpadStore**
+  - **Files:** `Sources/KaruCore/Storage/LocalStorageManager.swift`
+- [x] **Task 4.2: Implement ScratchpadStore**
   - **Acceptance:** Keystroke debouncing, local disk auto-save, and session travel log snapshotting.
   - **Verify:** `swift test --filter LocalStorageTests`
-  - **Files:** `Sources/Storage/ScratchpadStore.swift`
-- [ ] **Task 4.3: Write LocalStorage Unit Tests**
+  - **Files:** `Sources/KaruCore/Storage/ScratchpadStore.swift`
+- [x] **Task 4.3: Write LocalStorage Unit Tests**
   - **Acceptance:** Verifies roundtrip persistence, directory creation, and atomic write safety.
   - **Verify:** `swift test --filter LocalStorageTests`
-  - **Files:** `Tests/StorageTests/LocalStorageTests.swift`
+  - **Files:** `Tests/KaruCoreTests/LocalStorageTests.swift`
 
 ---
 
