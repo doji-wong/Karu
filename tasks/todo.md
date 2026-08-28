@@ -41,18 +41,18 @@
 ---
 
 ## Phase 3: App Classifier & Distraction Monitor (`app-classifier`)
-- [ ] **Task 3.1: Implement AppClassifier**
+- [x] **Task 3.1: Implement AppClassifier**
   - **Acceptance:** $O(1)$ lookup for bundle IDs with custom override > preset > neutral heuristic hierarchy.
   - **Verify:** `swift test --filter AppClassifierTests`
-  - **Files:** `Sources/Core/AppClassifier.swift`
-- [ ] **Task 3.2: Implement DistractionMonitor**
+  - **Files:** `Sources/KaruCore/Core/AppClassifier.swift`
+- [x] **Task 3.2: Implement DistractionMonitor**
   - **Acceptance:** Event-driven `NSWorkspace.didActivateApplicationNotification` listener with category dispatching.
   - **Verify:** `swift test --filter AppClassifierTests`
-  - **Files:** `Sources/Core/DistractionMonitor.swift`
-- [ ] **Task 3.3: Write AppClassifier Unit Tests**
+  - **Files:** `Sources/KaruCore/Core/DistractionMonitor.swift`
+- [x] **Task 3.3: Write AppClassifier Unit Tests**
   - **Acceptance:** Verifies bundle ID categorization, presets, and override priorities.
   - **Verify:** `swift test --filter AppClassifierTests`
-  - **Files:** `Tests/CoreTests/AppClassifierTests.swift`
+  - **Files:** `Tests/KaruCoreTests/AppClassifierTests.swift`
 
 ---
 
