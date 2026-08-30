@@ -17,6 +17,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     public private(set) var menuBarController: MenuBarController?
     public private(set) var notchController: NotchWindowController?
     public private(set) var floatingHUDPanel: FloatingHUDPanel?
+    public private(set) var sidebarHUDPanel: SidebarHUDPanel?
     
     // Secondary Windows
     private var garageWindow: NSWindow?
@@ -46,6 +47,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             audioEngine: audioEngine,
             storage: storage
         )
+        menuBar.onToggleSidebarHUD = { [weak self] in self?.toggleSidebarHUD() }
         menuBar.onToggleFloatingHUD = { [weak self] in self?.toggleFloatingHUD() }
         menuBar.onOpenGarage = { [weak self] in self?.openGarageWindow() }
         menuBar.onOpenSettings = { [weak self] in self?.openSettingsWindow() }
@@ -56,6 +58,17 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Initialize Floating HUD
         self.floatingHUDPanel = FloatingHUDPanel(engine: transitEngine, scratchpadStore: scratchpadStore)
+
+        // Initialize Sleek Edge-Docked Sidebar HUD
+        let sidebar = SidebarHUDPanel(
+            engine: transitEngine,
+            scratchpadStore: scratchpadStore,
+            audioEngine: audioEngine,
+            storage: storage,
+            onOpenGarage: { [weak self] in self?.openGarageWindow() },
+            onOpenSettings: { [weak self] in self?.openSettingsWindow() }
+        )
+        self.sidebarHUDPanel = sidebar
 
         // Wire Event-Driven Services
         distractionMonitor.onAppActivated = { [weak self] category, name, bundleId in
@@ -96,6 +109,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     // MARK: - Window Management Actions
+
+    public func toggleSidebarHUD() {
+        sidebarHUDPanel?.toggleVisibility()
+    }
 
     public func toggleFloatingHUD() {
         floatingHUDPanel?.toggleVisibility()

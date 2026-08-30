@@ -9,5 +9,30 @@ struct KaruApp: App {
         Settings {
             EmptyView()
         }
+        .commands {
+            CommandMenu("Karu") {
+                Button("Toggle Sidebar HUD") {
+                    appDelegate.toggleSidebarHUD()
+                }
+                .keyboardShortcut("s", modifiers: [.command, .shift])
+
+                Button("Toggle Floating HUD") {
+                    appDelegate.toggleFloatingHUD()
+                }
+                .keyboardShortcut("f", modifiers: [.command, .shift])
+
+                Divider()
+
+                Button("Open Garage") {
+                    appDelegate.openGarageWindow()
+                }
+                .keyboardShortcut("g", modifiers: [.command, .shift])
+
+                Button("Preferences & Rules...") {
+                    appDelegate.openSettingsWindow()
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
+        }
     }
 }
