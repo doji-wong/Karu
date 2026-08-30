@@ -13,8 +13,36 @@ struct ModelTests {
         #expect(TransitState.pitStop.targetVelocity == 0.0)
         #expect(TransitState.completed.targetVelocity == 0.0)
         
-        #expect(TransitState.cruising.displayTitle == "Cruising")
-        #expect(TransitState.trafficStalled.displayTitle == "Traffic Gridlock")
+        #expect(TransitState.cruising.displayTitle == "On Time")
+        #expect(TransitState.trafficStalled.displayTitle == "In Turbulence")
+    }
+
+    @Test("FlightBoardingInfo and AirportRoutePreset logic")
+    func flightBoardingInfoAndPresets() {
+        let boarding = FlightBoardingInfo()
+        #expect(boarding.flightNumber == "FL 288")
+        #expect(boarding.seatNumber == "Seat 1A")
+        #expect(boarding.seatClass == .deepWork)
+        #expect(boarding.originAirport.code == "SIN")
+        #expect(boarding.destinationAirport.code == "LHR")
+        #expect(boarding.aircraftType == "A350F")
+
+        let sinLhr = AirportRoutePreset.sinLhr
+        #expect(sinLhr.originCode == "SIN")
+        #expect(sinLhr.destinationCode == "LHR")
+        #expect(sinLhr.defaultAircraft == "A350F")
+
+        // Test destination airport timezone lookup
+        let tokyo = DestinationAirport.find(code: "HND")
+        #expect(tokyo.cityName == "Tokyo")
+        #expect(tokyo.countryFlag == "🇯🇵")
+        #expect(tokyo.timeZoneCode == "JST")
+        #expect(tokyo.utcOffsetHours == 9.0)
+
+        // Test FocusSeatClass
+        let codeSeat = FocusSeatClass.code
+        #expect(codeSeat.seatCode == "Seat 5F")
+        #expect(codeSeat.title == "Coding & Ship")
     }
 
     @Test("TripPreset duration and target distance math")
@@ -93,7 +121,7 @@ struct ModelTests {
     @Test("Vehicle profiles and audio configuration")
     func vehicleProfiles() {
         let ev = VehicleType.midnightEV
-        #expect(ev.themeColorHex == "#06B6D4")
+        #expect(ev.themeColorHex == "#FF5C00")
         #expect(!ev.soundProfileId.isEmpty)
         #expect(!ev.stallSoundProfileId.isEmpty)
 
