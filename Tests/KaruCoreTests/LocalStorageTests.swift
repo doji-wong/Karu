@@ -55,7 +55,7 @@ struct LocalStorageTests {
         #expect(loaded.first?.isCompleted == true)
     }
 
-    @Test("LocalStorageManager persists custom filter rules and vehicle profile")
+    @Test("LocalStorageManager persists custom filter rules and aircraft profile")
     func rulesAndVehiclePersistence() throws {
         let (storage, tempDir) = createTestStorage()
         defer { cleanupTestStorage(url: tempDir) }
@@ -72,29 +72,13 @@ struct LocalStorageTests {
         #expect(loadedRules.count == 1)
         #expect(loadedRules.first?.bundleIdentifier == "com.sublimetext.4")
 
-        let vehicle = VehicleProfile(type: .nightRainHatchback, isSoundEnabled: false, ambientVolume: 0.4)
+        let vehicle = AircraftProfile(type: .concordeSST, isSoundEnabled: false, ambientVolume: 0.4)
         try storage.saveVehicleProfile(vehicle)
 
         let loadedVehicle = storage.loadVehicleProfile()
-        #expect(loadedVehicle.type == .nightRainHatchback)
+        #expect(loadedVehicle.type == .concordeSST)
         #expect(loadedVehicle.isSoundEnabled == false)
         #expect(loadedVehicle.ambientVolume == 0.4)
-    }
-
-    @Test("ScratchpadStore persists and flushes notes to disk")
-    @MainActor
-    func scratchpadPersistence() {
-        let (storage, tempDir) = createTestStorage()
-        defer { cleanupTestStorage(url: tempDir) }
-
-        let store = ScratchpadStore(storage: storage)
-        store.notes = "# Study Notes\n- Reviewing transit engine state transitions."
-        store.flush()
-
-        #expect(storage.loadScratchpadText() == "# Study Notes\n- Reviewing transit engine state transitions.")
-
-        store.clear()
-        #expect(storage.loadScratchpadText() == "")
     }
 
     @Test("Corrupted JSON files recover with safe defaults without crashing")

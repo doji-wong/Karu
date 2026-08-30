@@ -14,7 +14,7 @@ struct TransitEngineTests {
         #expect(engine.activeSession == nil)
     }
 
-    @Test("Starting a trip sets cruising state and 100 km/h velocity")
+    @Test("Starting a flight sets cruising state and 540 kts velocity")
     @MainActor
     func startTrip() {
         let engine = TransitEngine()
@@ -23,22 +23,22 @@ struct TransitEngineTests {
             stateChanges.append((old, new))
         }
 
-        engine.startTrip(preset: .cityDash25)
+        engine.startTrip(preset: .sprint25)
 
         #expect(engine.state == .cruising)
-        #expect(engine.currentVelocity == 100.0)
+        #expect(engine.currentVelocity == 540.0)
         #expect(engine.activeSession != nil)
-        #expect(engine.activeSession?.preset == .cityDash25)
+        #expect(engine.activeSession?.preset == .sprint25)
         #expect(stateChanges.count == 1)
         #expect(stateChanges.first?.0 == .idle)
         #expect(stateChanges.first?.1 == .cruising)
     }
 
-    @Test("Switching into distraction app stalls velocity to 0 km/h and logs incident")
+    @Test("Switching into distraction app enters turbulence and logs encounter")
     @MainActor
     func distractionSwitchAndRecovery() {
         let engine = TransitEngine()
-        engine.startTrip(preset: .cityDash25)
+        engine.startTrip(preset: .sprint25)
 
         // Cruise for 10 seconds
         for _ in 0..<10 {
@@ -78,28 +78,28 @@ struct TransitEngineTests {
         )
 
         #expect(engine.state == .cruising)
-        #expect(engine.currentVelocity == 100.0)
-        #expect(engine.activeSession?.incidents.count == 1)
-        #expect(engine.activeSession?.incidents.first?.appName == "Discord")
-        #expect(engine.activeSession?.incidents.first?.duration == 5.0)
+        #expect(engine.currentVelocity == 540.0)
+        #expect(engine.activeSession?.turbulenceLogs.count == 1)
+        #expect(engine.activeSession?.turbulenceLogs.first?.appName == "Discord")
+        #expect(engine.activeSession?.turbulenceLogs.first?.duration == 5.0)
     }
 
-    @Test("Pit stop pauses trip and preserves incident tracking")
+    @Test("Gate hold pauses flight and preserves turbulence tracking")
     @MainActor
     func pitStopBehavior() {
         let engine = TransitEngine()
-        engine.startTrip(preset: .cityDash25)
+        engine.startTrip(preset: .sprint25)
 
-        engine.togglePitStop()
+        engine.toggleGateHold()
         #expect(engine.state == .pitStop)
         #expect(engine.currentVelocity == 0.0)
 
         engine.tick(seconds: 15.0)
         #expect(engine.activeSession?.pausedDuration == 15.0)
 
-        engine.togglePitStop()
+        engine.toggleGateHold()
         #expect(engine.state == .cruising)
-        #expect(engine.currentVelocity == 100.0)
+        #expect(engine.currentVelocity == 540.0)
     }
 
     @Test("Trip auto-completes upon reaching target distance / duration")
@@ -112,7 +112,7 @@ struct TransitEngineTests {
         }
 
         // Start 25m trip (1500s)
-        engine.startTrip(preset: .cityDash25)
+        engine.startTrip(preset: .sprint25)
         
         // Fast-forward tick to completion (1500s)
         engine.tick(seconds: 1500.0)

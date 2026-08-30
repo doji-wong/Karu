@@ -8,7 +8,7 @@ struct ModelTests {
     @Test("TransitState target velocity and display properties")
     func transitStateProperties() {
         #expect(TransitState.idle.targetVelocity == 0.0)
-        #expect(TransitState.cruising.targetVelocity == 100.0)
+        #expect(TransitState.cruising.targetVelocity == 540.0)
         #expect(TransitState.trafficStalled.targetVelocity == 0.0)
         #expect(TransitState.pitStop.targetVelocity == 0.0)
         #expect(TransitState.completed.targetVelocity == 0.0)
@@ -47,14 +47,14 @@ struct ModelTests {
 
     @Test("TripPreset duration and target distance math")
     func tripPresetCalculations() {
-        #expect(TripPreset.cityDash25.targetDuration == TimeInterval(25 * 60))
-        #expect(TripPreset.expressway50.targetDuration == TimeInterval(50 * 60))
-        #expect(TripPreset.interstate90.targetDuration == TimeInterval(90 * 60))
-        #expect(TripPreset.openHighway.targetDuration == nil)
+        #expect(TripPreset.sprint25.targetDuration == TimeInterval(25 * 60))
+        #expect(TripPreset.cruise50.targetDuration == TimeInterval(50 * 60))
+        #expect(TripPreset.longHaul90.targetDuration == TimeInterval(90 * 60))
+        #expect(TripPreset.openFlight.targetDuration == nil)
         
-        let expectedDistance = ((25.0 * 60.0) / 3600.0) * 100.0
-        let actual = TripPreset.cityDash25.targetDistanceKm ?? 0
-        #expect(abs(actual - expectedDistance) < 0.001)
+        let expectedNM = ((25.0 * 60.0) / 3600.0) * 540.0
+        let actualNM = TripPreset.sprint25.targetDistanceNM ?? 0
+        #expect(abs(actualNM - expectedNM) < 0.001)
     }
 
     @Test("TripSession efficiency calculation and Codable roundtrip")
