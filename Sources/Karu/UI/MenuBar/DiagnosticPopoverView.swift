@@ -32,48 +32,12 @@ public struct DiagnosticPopoverView: View {
     public var body: some View {
         VStack(spacing: 0) {
             FocusFlightCard(
-                state: engine.state,
-                velocity: engine.currentVelocity,
-                activeSession: engine.activeSession,
-                aircraft: engine.activeAircraft,
+                engine: engine,
                 audioEngine: audioEngine,
-                onStart: { preset, customDuration in
-                    engine.startTrip(preset: preset, customDuration: customDuration)
-                    audioEngine.start()
-                },
-                onStartFlight: { preset, customDuration, origin, destination, seatCode, taskTitle, seatIcon in
-                    engine.startTrip(
-                        preset: preset,
-                        customDuration: customDuration,
-                        origin: origin,
-                        destination: destination,
-                        seatCode: seatCode,
-                        taskTitle: taskTitle,
-                        seatIcon: seatIcon
-                    )
-                    audioEngine.start()
-                },
-                onHold: {
-                    engine.toggleGateHold()
-                },
-                onDock: {
-                    engine.completeTrip()
-                },
-                onAbort: {
-                    engine.cancelTrip()
-                },
-                onToggleFloatingHUD: {
-                    onToggleFloatingHUD?()
-                },
-                onOpenGarage: {
-                    onOpenGarage?()
-                },
-                onOpenSettings: {
-                    onOpenSettings?()
-                },
-                onOpenLogbook: {
-                    onOpenLogbook?()
-                }
+                onToggleFloatingHUD: onToggleFloatingHUD,
+                onOpenGarage: onOpenGarage,
+                onOpenSettings: onOpenSettings,
+                onOpenLogbook: onOpenLogbook
             )
             Spacer(minLength: 0)
         }

@@ -112,6 +112,21 @@ public enum FocusSeatClass: String, Codable, Sendable, CaseIterable, Identifiabl
         }
     }
 
+    public var shortTaskTitle: String {
+        switch self {
+        case .deepWork: return "DEEP WORK"
+        case .study: return "STUDY"
+        case .research: return "RESEARCH"
+        case .read: return "READING"
+        case .code: return "CODING"
+        }
+    }
+
+    public static func find(code: String) -> FocusSeatClass? {
+        let clean = code.replacingOccurrences(of: "Seat ", with: "").trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        return FocusSeatClass(rawValue: clean)
+    }
+
     public var themeColorHex: String {
         switch self {
         case .deepWork: return "#FF5C00"

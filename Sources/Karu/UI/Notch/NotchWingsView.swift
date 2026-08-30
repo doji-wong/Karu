@@ -64,16 +64,16 @@ public struct NotchRightWingView: View {
                     let remMins = mins % 60
                     
                     if hours > 0 {
-                        Text("🛬 \(hours)h \(remMins)m")
+                        Text("\(hours)h \(remMins)m")
                             .font(KaruTheme.captionMono)
                             .foregroundStyle(KaruTheme.luminousLime)
                     } else {
-                        Text("🛬 \(mins)m")
+                        Text("\(mins)m")
                             .font(KaruTheme.captionMono)
                             .foregroundStyle(KaruTheme.luminousLime)
                     }
                 } else {
-                    Text("🛬 Open Run")
+                    Text("Open Run")
                         .font(KaruTheme.captionMono)
                         .foregroundStyle(KaruTheme.luminousLime)
                 }

@@ -94,6 +94,45 @@ public final class TransitEngine {
         startTrip(preset: preset, customDuration: customDuration, habit: habit, aircraft: vehicle)
     }
 
+    // MARK: - Seat & Mission Configuration
+
+    /// Update active seat and task mission telemetry (updates ongoing session in real-time).
+    public func updateSeat(seatCode: String, taskTitle: String, seatIcon: String) {
+        self.activeSeatCode = seatCode
+        self.activeTaskTitle = taskTitle
+        self.activeSeatIcon = seatIcon
+        
+        if var session = activeSession {
+            session.seatCode = seatCode
+            session.taskTitle = taskTitle
+            session.seatIcon = seatIcon
+            self.activeSession = session
+        }
+    }
+
+    /// Update active seat using a standard FocusSeatClass.
+    public func updateSeat(seatClass: FocusSeatClass) {
+        updateSeat(
+            seatCode: seatClass.rawValue,
+            taskTitle: seatClass.shortTaskTitle,
+            seatIcon: seatClass.iconSymbol
+        )
+    }
+
+    // MARK: - Route Configuration
+
+    /// Update active flight route (updates ongoing session in real-time).
+    public func updateRoute(origin: String, destination: String) {
+        self.activeOrigin = origin
+        self.activeDestination = destination
+        
+        if var session = activeSession {
+            session.originAirportCode = origin
+            session.destinationAirportCode = destination
+            self.activeSession = session
+        }
+    }
+
     /// Pause the flight for a gate hold / coffee break.
     public func toggleGateHold() {
         guard activeSession != nil else { return }

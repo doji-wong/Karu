@@ -8,6 +8,8 @@ import KaruCore
 public final class MenuBarPanel: NSPanel {
     private var globalMonitor: Any?
     private var localMonitor: Any?
+    private weak var statusButton: NSStatusBarButton?
+    public private(set) var showTimestamp: TimeInterval = 0
 
     public var onDidHide: (() -> Void)?
 
@@ -27,6 +29,7 @@ public final class MenuBarPanel: NSPanel {
     }
 
     public func show(relativeTo button: NSStatusBarButton) {
+        self.statusButton = button
         guard let buttonWindow = button.window else { return }
         let buttonScreenRect = buttonWindow.convertToScreen(button.bounds)
         let panelWidth: CGFloat = 372
@@ -42,7 +45,8 @@ public final class MenuBarPanel: NSPanel {
         
         self.setFrameOrigin(NSPoint(x: x, y: y))
         self.makeKeyAndOrderFront(nil)
-        startMonitoring(buttonWindow: buttonWindow)
+        self.showTimestamp = CACurrentMediaTime()
+        startMonitoring()
     }
 
     public func hide() {
@@ -51,12 +55,50 @@ public final class MenuBarPanel: NSPanel {
         onDidHide?()
     }
 
-    private func startMonitoring(buttonWindow: NSWindow) {
+    private func startMonitoring() {
         stopMonitoring()
+        
+        // Global monitor: handles clicks outside the app
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-            Task { @MainActor in
-                self?.hide()
+            guard let self = self else { return }
+            // Ignore events within 150ms of show to avoid closing on the initial menu bar click
+            guard CACurrentMediaTime() - self.showTimestamp > 0.15 else { return }
+            
+            let mouseLoc = NSEvent.mouseLocation
+            
+            // If click is on the status bar button, let the button's action handler manage toggling
+            if let button = self.statusButton, let btnWindow = button.window {
+                let btnScreenRect = btnWindow.convertToScreen(button.bounds)
+                if btnScreenRect.contains(mouseLoc) {
+                    return
+                }
             }
+            
+            // If click is inside the panel, do not dismiss
+            if self.frame.contains(mouseLoc) {
+                return
+            }
+            
+            Task { @MainActor in
+                self.hide()
+            }
+        }
+        
+        // Local monitor: handles clicks inside the app but outside this panel
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            guard let self = self else { return event }
+            if event.window == self {
+                return event
+            }
+            if let button = self.statusButton, event.window == button.window {
+                return event
+            }
+            if CACurrentMediaTime() - self.showTimestamp > 0.15 {
+                Task { @MainActor in
+                    self.hide()
+                }
+            }
+            return event
         }
     }
 
@@ -65,10 +107,17 @@ public final class MenuBarPanel: NSPanel {
             NSEvent.removeMonitor(monitor)
             globalMonitor = nil
         }
+        if let monitor = localMonitor {
+            NSEvent.removeMonitor(monitor)
+            localMonitor = nil
+        }
     }
 
     deinit {
         if let monitor = globalMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
+        if let monitor = localMonitor {
             NSEvent.removeMonitor(monitor)
         }
     }
@@ -103,7 +152,6 @@ public final class MenuBarController: NSObject {
 
         setupStatusItem()
         setupPanel()
-        observeEngine()
     }
 
     // MARK: - Setup
@@ -114,6 +162,7 @@ public final class MenuBarController: NSObject {
         if let button = statusItem?.button {
             button.target = self
             button.action = #selector(togglePopover(_:))
+            button.sendAction(on: [.leftMouseDown, .leftMouseUp])
             updateStatusItemVisuals()
         }
     }
@@ -135,9 +184,9 @@ public final class MenuBarController: NSObject {
                 self?.menuBarPanel?.hide()
                 self?.onOpenSettings?() 
             },
-            onOpenLogbook: { [weak self] in
+            onOpenLogbook: { [weak self] in 
                 self?.menuBarPanel?.hide()
-                self?.onOpenLogbook?()
+                self?.onOpenLogbook?() 
             }
         )
 
@@ -157,21 +206,15 @@ public final class MenuBarController: NSObject {
         menuBarPanel?.hide()
     }
 
-    private func observeEngine() {
-        // Update menu bar display whenever engine state or velocity changes
-        engine.onStateChanged = { [weak self] _, _ in
-            Task { @MainActor in
-                self?.updateStatusItemVisuals()
-            }
-        }
-    }
-
     // MARK: - Actions
 
     @objc public func togglePopover(_ sender: AnyObject?) {
         guard let button = statusItem?.button, let panel = menuBarPanel else { return }
 
         if panel.isVisible {
+            if CACurrentMediaTime() - panel.showTimestamp < 0.2 {
+                return
+            }
             panel.hide()
         } else {
             panel.show(relativeTo: button)
@@ -191,7 +234,7 @@ public final class MenuBarController: NSObject {
             if let session = engine.activeSession, let target = session.targetDuration {
                 let remaining = max(0, target - session.cruisingDuration)
                 let mins = Int(remaining) / 60
-                button.title = " 🛬 \(mins)m"
+                button.title = " \(mins)m"
             } else {
                 button.title = " 540 kts"
             }

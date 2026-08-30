@@ -57,4 +57,20 @@ struct AudioEngineTests {
         audioEngine.updateState(.idle, animated: false)
         #expect(audioEngine.currentTransitState == .idle)
     }
+
+    @Test("Cabin PA voice announcements configure and trigger correctly")
+    @MainActor
+    func cabinAnnouncements() {
+        let audioEngine = AudioEngine()
+        #expect(audioEngine.isAnnouncementsEnabled == true)
+
+        audioEngine.announceTakeoff(destinationCity: "Tokyo", seatCode: "5F", taskTitle: "Coding")
+        audioEngine.announceGateHold(isHolding: true)
+        audioEngine.announceGateHold(isHolding: false)
+        audioEngine.announceTurbulence()
+        audioEngine.announceTouchdown(destinationCity: "Tokyo")
+
+        audioEngine.isAnnouncementsEnabled = false
+        #expect(audioEngine.isAnnouncementsEnabled == false)
+    }
 }

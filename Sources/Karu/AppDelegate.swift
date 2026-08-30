@@ -83,14 +83,34 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor in
                 guard let self = self else { return }
                 self.audioEngine.updateState(newState)
+                self.menuBarController?.updateStatusItemVisuals()
+
+                let destCity = DestinationAirport.find(code: self.transitEngine.activeDestination).cityName
+                let seatCode = self.transitEngine.activeSeatCode
+                let seatClass = FocusSeatClass.find(code: seatCode)
+                let taskTitle = seatClass?.shortTaskTitle.capitalized ?? (self.transitEngine.activeTaskTitle.isEmpty ? "Deep Work" : self.transitEngine.activeTaskTitle)
 
                 if oldState == .idle && newState == .cruising {
-                    // Flight started! Dismiss menu dropdown and show floating minimalist HUD automatically
+                    // Flight started! Dismiss menu dropdown, show floating HUD, and announce takeoff
                     self.menuBarController?.hidePopover()
                     self.floatingHUDPanel?.resetSuppression()
                     self.floatingHUDPanel?.showFloating(force: true)
-                } else if newState == .completed || newState == .idle {
-                    // Flight ended or aborted! Automatically hide floating HUD
+                    self.audioEngine.announceTakeoff(destinationCity: destCity, seatCode: seatCode, taskTitle: taskTitle)
+                } else if oldState == .cruising && newState == .trafficStalled {
+                    // Distraction app entered turbulence!
+                    self.audioEngine.announceTurbulence()
+                } else if newState == .pitStop {
+                    // Gate hold paused flight
+                    self.audioEngine.announceGateHold(isHolding: true)
+                } else if oldState == .pitStop && newState == .cruising {
+                    // Resumed cruising from gate hold
+                    self.audioEngine.announceGateHold(isHolding: false)
+                } else if newState == .completed {
+                    // Flight touchdown!
+                    self.audioEngine.announceTouchdown(destinationCity: destCity)
+                    self.floatingHUDPanel?.hideFloating()
+                } else if newState == .idle {
+                    // Aborted or reset
                     self.floatingHUDPanel?.hideFloating()
                 }
             }

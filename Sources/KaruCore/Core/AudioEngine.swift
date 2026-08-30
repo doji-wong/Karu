@@ -19,6 +19,10 @@ public final class AudioEngine {
     private let chimePlayerNode = AVAudioPlayerNode()
     private let mixerNode = AVAudioMixerNode()
     
+    // Cabin PA Announcement Synthesizer
+    private let speechSynthesizer = AVSpeechSynthesizer()
+    public var isAnnouncementsEnabled: Bool = true
+    
     // State properties
     public private(set) var isRunning: Bool = false
     public private(set) var isMuted: Bool = false
@@ -96,6 +100,9 @@ public final class AudioEngine {
         cruisePlayerNode.stop()
         stallPlayerNode.stop()
         chimePlayerNode.stop()
+        if speechSynthesizer.isSpeaking {
+            speechSynthesizer.stopSpeaking(at: .immediate)
+        }
         engine.stop()
     }
 
@@ -103,11 +110,17 @@ public final class AudioEngine {
     public func toggleMute() {
         isMuted.toggle()
         updateMixerVolume()
+        if isMuted && speechSynthesizer.isSpeaking {
+            speechSynthesizer.stopSpeaking(at: .immediate)
+        }
     }
 
     public func setMuted(_ muted: Bool) {
         isMuted = muted
         updateMixerVolume()
+        if isMuted && speechSynthesizer.isSpeaking {
+            speechSynthesizer.stopSpeaking(at: .immediate)
+        }
     }
 
     /// Play the classic dual-tone airplane seatbelt sign chime ("Ding-Dong").
@@ -116,6 +129,64 @@ public final class AudioEngine {
         chimePlayerNode.stop()
         chimePlayerNode.scheduleBuffer(chimeBuf, at: nil, options: [], completionHandler: nil)
         chimePlayerNode.play()
+    }
+
+    // MARK: - Cabin PA Voice Announcements
+
+    /// Speak a cabin PA announcement with calm pilot voice parameters.
+    public func speakAnnouncement(_ text: String, playChime: Bool = true) {
+        guard !isMuted && isAnnouncementsEnabled else { return }
+        
+        if playChime {
+            playSeatbeltChime()
+        }
+        
+        Task { @MainActor in
+            if playChime {
+                try? await Task.sleep(nanoseconds: 650_000_000) // 650ms after chime starts
+            }
+            guard !self.isMuted && self.isAnnouncementsEnabled else { return }
+            
+            if self.speechSynthesizer.isSpeaking {
+                self.speechSynthesizer.stopSpeaking(at: .immediate)
+            }
+            
+            let utterance = AVSpeechUtterance(string: text)
+            if let voice = AVSpeechSynthesisVoice(language: "en-US") {
+                utterance.voice = voice
+            }
+            utterance.rate = 0.48
+            utterance.pitchMultiplier = 0.95
+            utterance.volume = min(1.0, max(0.2, self.masterVolume))
+            
+            self.speechSynthesizer.speak(utterance)
+        }
+    }
+
+    /// Announce flight takeoff and initial cruise with destination, seat, and focus task mode.
+    public func announceTakeoff(destinationCity: String, seatCode: String = "5F", taskTitle: String = "Deep Work") {
+        let cleanSeat = seatCode.replacingOccurrences(of: "Seat ", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanTask = taskTitle.replacingOccurrences(of: "MODE", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = "Welcome aboard Flight FL 288 to \(destinationCity). Cruising altitude reached in Seat \(cleanSeat) for \(cleanTask). Focus flight engaged."
+        speakAnnouncement(text, playChime: true)
+    }
+
+    /// Announce flight landing / touchdown.
+    public func announceTouchdown(destinationCity: String) {
+        let text = "Ladies and gentlemen, touchdown in \(destinationCity). Certified focus flight completed. Thank you for flying Karu."
+        speakAnnouncement(text, playChime: true)
+    }
+
+    /// Announce gate hold or cruise resumption.
+    public func announceGateHold(isHolding: Bool) {
+        let text = isHolding ? "Flight paused for gate hold." : "Resuming flight cruise."
+        speakAnnouncement(text, playChime: false)
+    }
+
+    /// Announce turbulence warning.
+    public func announceTurbulence() {
+        let text = "Caution, turbulence detected. Return to approved focus workspaces."
+        speakAnnouncement(text, playChime: true)
     }
 
     // MARK: - State Transitions & 400ms Crossfade

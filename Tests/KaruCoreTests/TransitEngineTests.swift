@@ -123,4 +123,61 @@ struct TransitEngineTests {
         #expect(completedSession?.isCompleted == true)
         #expect(completedSession?.cruisingDuration == 1500.0)
     }
+
+    @Test("Seat updates mutate engine properties and active trip session in real-time")
+    @MainActor
+    func seatUpdatesInIdleAndInFlight() {
+        let engine = TransitEngine()
+        
+        // 1. Idle seat update
+        engine.updateSeat(seatClass: .deepWork)
+        #expect(engine.activeSeatCode == "1A")
+        #expect(engine.activeTaskTitle == "DEEP WORK")
+        #expect(engine.activeSeatIcon == "brain.head.profile")
+        
+        // 2. Start trip and verify session inherits active seat
+        engine.startTrip(preset: .sprint25, seatCode: engine.activeSeatCode, taskTitle: engine.activeTaskTitle, seatIcon: engine.activeSeatIcon)
+        #expect(engine.activeSession?.seatCode == "1A")
+        #expect(engine.activeSession?.taskTitle == "DEEP WORK")
+        
+        // 3. In-flight seat update to Study
+        engine.updateSeat(seatClass: .study)
+        #expect(engine.activeSeatCode == "2B")
+        #expect(engine.activeTaskTitle == "STUDY")
+        #expect(engine.activeSeatIcon == "graduationcap.fill")
+        #expect(engine.activeSession?.seatCode == "2B")
+        #expect(engine.activeSession?.taskTitle == "STUDY")
+        #expect(engine.activeSession?.seatIcon == "graduationcap.fill")
+        
+        // 4. Custom seat in-flight update
+        engine.updateSeat(seatCode: "7X", taskTitle: "AUTH ENGINE", seatIcon: "terminal")
+        #expect(engine.activeSeatCode == "7X")
+        #expect(engine.activeTaskTitle == "AUTH ENGINE")
+        #expect(engine.activeSeatIcon == "terminal")
+        #expect(engine.activeSession?.seatCode == "7X")
+        #expect(engine.activeSession?.taskTitle == "AUTH ENGINE")
+    }
+
+    @Test("Route updates mutate engine origin/destination and active trip session")
+    @MainActor
+    func routeUpdatesInIdleAndInFlight() {
+        let engine = TransitEngine()
+        
+        // 1. Idle route update
+        engine.updateRoute(origin: "SFO", destination: "HND")
+        #expect(engine.activeOrigin == "SFO")
+        #expect(engine.activeDestination == "HND")
+        
+        // 2. Start flight and verify session
+        engine.startTrip(preset: .sprint25, origin: engine.activeOrigin, destination: engine.activeDestination)
+        #expect(engine.activeSession?.originAirportCode == "SFO")
+        #expect(engine.activeSession?.destinationAirportCode == "HND")
+        
+        // 3. In-flight route update
+        engine.updateRoute(origin: "SIN", destination: "LHR")
+        #expect(engine.activeOrigin == "SIN")
+        #expect(engine.activeDestination == "LHR")
+        #expect(engine.activeSession?.originAirportCode == "SIN")
+        #expect(engine.activeSession?.destinationAirportCode == "LHR")
+    }
 }

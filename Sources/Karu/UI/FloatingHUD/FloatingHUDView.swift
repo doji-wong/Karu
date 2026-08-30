@@ -48,8 +48,9 @@ public struct FloatingHUDView: View {
 
     private var seatBadgeText: String {
         let code = engine.activeSeatCode.isEmpty ? "5F" : engine.activeSeatCode.uppercased()
+        let cleanCode = code.hasPrefix("SEAT ") ? String(code.dropFirst(5)) : code
         let title = engine.activeTaskTitle.isEmpty ? "CODING" : engine.activeTaskTitle.uppercased()
-        return "\(code) · \(title)"
+        return "SEAT \(cleanCode) · \(title)"
     }
 
     public var body: some View {
@@ -185,30 +186,7 @@ public struct FloatingHUDView: View {
     private var expandedCardView: some View {
         ZStack(alignment: .topTrailing) {
             FocusFlightCard(
-                state: engine.state,
-                velocity: engine.currentVelocity,
-                activeSession: engine.activeSession,
-                aircraft: engine.activeAircraft,
-                onStartFlight: { preset, customDuration, origin, destination, seatCode, taskTitle, seatIcon in
-                    engine.startTrip(
-                        preset: preset,
-                        customDuration: customDuration,
-                        origin: origin,
-                        destination: destination,
-                        seatCode: seatCode,
-                        taskTitle: taskTitle,
-                        seatIcon: seatIcon
-                    )
-                },
-                onHold: {
-                    engine.toggleGateHold()
-                },
-                onDock: {
-                    engine.completeTrip()
-                },
-                onAbort: {
-                    engine.cancelTrip()
-                },
+                engine: engine,
                 onToggleFloatingHUD: {
                     withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                         isExpandedToFullCard = false

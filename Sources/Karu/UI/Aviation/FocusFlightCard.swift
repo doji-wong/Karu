@@ -15,16 +15,8 @@ public enum FlightCardDrawer: Equatable {
 /// - Drawer Open Height: 348px (Inline airport and seat class drawers without window clipping)
 /// - Pure Jet Black base (#08080A), Obsidian containers (#151518), and Crisp White highlights (#FFFFFF)
 public struct FocusFlightCard: View {
-    public var state: TransitState
-    public var velocity: Double
-    public var activeSession: TripSession?
-    public var aircraft: AircraftType
+    @Bindable public var engine: TransitEngine
     public var audioEngine: AudioEngine?
-    public var onStart: ((FlightPreset, TimeInterval?) -> Void)?
-    public var onStartFlight: ((FlightPreset, TimeInterval?, String, String, String, String, String) -> Void)?
-    public var onHold: (() -> Void)?
-    public var onDock: (() -> Void)?
-    public var onAbort: (() -> Void)?
     public var onToggleFloatingHUD: (() -> Void)?
     public var onOpenGarage: (() -> Void)?
     public var onOpenSettings: (() -> Void)?
@@ -51,31 +43,15 @@ public struct FocusFlightCard: View {
     @State private var airportSearchQuery: String = ""
     
     public init(
-        state: TransitState,
-        velocity: Double,
-        activeSession: TripSession? = nil,
-        aircraft: AircraftType = .a350F,
+        engine: TransitEngine,
         audioEngine: AudioEngine? = nil,
-        onStart: ((FlightPreset, TimeInterval?) -> Void)? = nil,
-        onStartFlight: ((FlightPreset, TimeInterval?, String, String, String, String, String) -> Void)? = nil,
-        onHold: (() -> Void)? = nil,
-        onDock: (() -> Void)? = nil,
-        onAbort: (() -> Void)? = nil,
         onToggleFloatingHUD: (() -> Void)? = nil,
         onOpenGarage: (() -> Void)? = nil,
         onOpenSettings: (() -> Void)? = nil,
         onOpenLogbook: (() -> Void)? = nil
     ) {
-        self.state = state
-        self.velocity = velocity
-        self.activeSession = activeSession
-        self.aircraft = aircraft
+        self.engine = engine
         self.audioEngine = audioEngine
-        self.onStart = onStart
-        self.onStartFlight = onStartFlight
-        self.onHold = onHold
-        self.onDock = onDock
-        self.onAbort = onAbort
         self.onToggleFloatingHUD = onToggleFloatingHUD
         self.onOpenGarage = onOpenGarage
         self.onOpenSettings = onOpenSettings
@@ -85,46 +61,38 @@ public struct FocusFlightCard: View {
     // MARK: - Seat & Mission Helpers
     
     public var currentSeatCode: String {
-        if let session = activeSession {
-            return session.seatCode
+        if isCustomSeatSelected {
+            return customSeatCode.isEmpty ? "7X" : customSeatCode.uppercased()
         }
-        return isCustomSeatSelected ? (customSeatCode.isEmpty ? "7X" : customSeatCode.uppercased()) : selectedSeat.rawValue
+        let code = engine.activeSeatCode.replacingOccurrences(of: "Seat ", with: "").trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        return code.isEmpty ? selectedSeat.rawValue : code
     }
 
     public var currentTaskTitle: String {
-        if let session = activeSession {
-            return session.taskTitle.uppercased()
-        }
         if isCustomSeatSelected {
             return customTaskName.isEmpty ? "CUSTOM" : customTaskName.uppercased()
         }
-        switch selectedSeat {
-        case .deepWork: return "DEEP WORK"
-        case .study: return "STUDY"
-        case .research: return "RESEARCH"
-        case .read: return "READING"
-        case .code: return "CODING"
-        }
+        return engine.activeTaskTitle.isEmpty ? selectedSeat.shortTaskTitle : engine.activeTaskTitle.uppercased()
     }
 
     public var currentSeatIcon: String {
-        if let session = activeSession {
-            return session.seatIcon
+        if isCustomSeatSelected {
+            return customSeatIcon
         }
-        return isCustomSeatSelected ? customSeatIcon : selectedSeat.iconSymbol
+        return engine.activeSeatIcon.isEmpty ? selectedSeat.iconSymbol : engine.activeSeatIcon
     }
     
     // MARK: - Telemetry Calculations
     
     private var progress: Double {
-        if let session = activeSession {
+        if let session = engine.activeSession {
             return min(1.0, max(0.0, session.progressFraction))
         }
-        return state == .cruising ? 0.42 : (state == .completed ? 1.0 : 0.0)
+        return engine.state == .cruising ? 0.42 : (engine.state == .completed ? 1.0 : 0.0)
     }
     
     private var isExpanded: Bool {
-        isHovering || state != .idle || activeDrawer != nil
+        isHovering || engine.state != .idle || activeDrawer != nil
     }
     
     private var currentCardHeight: CGFloat {
@@ -138,7 +106,7 @@ public struct FocusFlightCard: View {
     }
     
     private var remainingTimeNegativeFormatted: String {
-        if let session = activeSession, let target = session.targetDuration {
+        if let session = engine.activeSession, let target = session.targetDuration {
             let remaining: Double = max(0.0, target - session.cruisingDuration)
             let hours: Int = Int(remaining) / 3600
             let mins: Int = (Int(remaining) % 3600) / 60
@@ -162,7 +130,7 @@ public struct FocusFlightCard: View {
     private var departureTimeString: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "EEE, h:mm a"
-        if let session = activeSession {
+        if let session = engine.activeSession {
             return formatter.string(from: session.startDate).uppercased()
         }
         return formatter.string(from: Date()).uppercased()
@@ -170,7 +138,7 @@ public struct FocusFlightCard: View {
     
     private var arrivalTimeString: String {
         let durationSecs: TimeInterval
-        if let session = activeSession, let target = session.targetDuration {
+        if let session = engine.activeSession, let target = session.targetDuration {
             durationSecs = max(0.0, target - session.cruisingDuration)
         } else {
             durationSecs = TimeInterval(selectedDurationMinutes * 60)
@@ -183,7 +151,7 @@ public struct FocusFlightCard: View {
     
     private var etaDisplayString: String {
         let durationSecs: TimeInterval
-        if let session = activeSession, let target = session.targetDuration {
+        if let session = engine.activeSession, let target = session.targetDuration {
             durationSecs = max(0.0, target - session.cruisingDuration)
         } else {
             durationSecs = TimeInterval(selectedDurationMinutes * 60)
@@ -203,7 +171,7 @@ public struct FocusFlightCard: View {
     }
     
     private var eventBadgeText: String {
-        switch state {
+        switch engine.state {
         case .idle:
             return "READY IN \(selectedDurationMinutes)M"
         case .cruising:
@@ -277,6 +245,19 @@ public struct FocusFlightCard: View {
         .onHover { hovering in
             withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                 isHovering = hovering
+            }
+        }
+        .onAppear {
+            originAirport = DestinationAirport.find(code: engine.activeOrigin)
+            destinationAirport = DestinationAirport.find(code: engine.activeDestination)
+            if let seatClass = FocusSeatClass.find(code: engine.activeSeatCode) {
+                selectedSeat = seatClass
+                isCustomSeatSelected = false
+            } else if !engine.activeSeatCode.isEmpty {
+                isCustomSeatSelected = true
+                customSeatCode = engine.activeSeatCode
+                customTaskName = engine.activeTaskTitle
+                customSeatIcon = engine.activeSeatIcon
             }
         }
     }
@@ -382,15 +363,15 @@ public struct FocusFlightCard: View {
     private var bottomSliderRow: some View {
         LuminousSliderTrackView(
             progress: progress,
-            state: state,
+            state: engine.state,
             remainingText: remainingTimeNegativeFormatted,
             onDragChanged: { frac in
-                if state == .idle {
+                if engine.state == .idle {
                     selectedDurationMinutes = max(5, Int(frac * 90.0))
                 }
             },
             onDragEnded: { frac in
-                if state == .idle {
+                if engine.state == .idle {
                     selectedDurationMinutes = max(5, Int(frac * 90.0))
                 }
             }
@@ -445,21 +426,18 @@ public struct FocusFlightCard: View {
             
             Spacer()
             
-            if state == .idle {
+            if engine.state == .idle {
                 Button {
-                    if let onStartFlight = onStartFlight {
-                        onStartFlight(
-                            .sprint25,
-                            TimeInterval(selectedDurationMinutes * 60),
-                            originAirport.code,
-                            destinationAirport.code,
-                            currentSeatCode,
-                            currentTaskTitle,
-                            currentSeatIcon
-                        )
-                    } else {
-                        onStart?(.sprint25, TimeInterval(selectedDurationMinutes * 60))
-                    }
+                    engine.startTrip(
+                        preset: .sprint25,
+                        customDuration: TimeInterval(selectedDurationMinutes * 60),
+                        origin: originAirport.code,
+                        destination: destinationAirport.code,
+                        seatCode: currentSeatCode,
+                        taskTitle: currentTaskTitle,
+                        seatIcon: currentSeatIcon
+                    )
+                    audioEngine?.start()
                 } label: {
                     HStack(spacing: 3.5) {
                         Image(systemName: "play.fill")
@@ -481,9 +459,9 @@ public struct FocusFlightCard: View {
             } else {
                 HStack(spacing: 4.5) {
                     Button {
-                        onHold?()
+                        engine.toggleGateHold()
                     } label: {
-                        Image(systemName: state == .pitStop ? "play.fill" : "pause.fill")
+                        Image(systemName: engine.state == .pitStop ? "play.fill" : "pause.fill")
                             .font(.system(size: 8.5, weight: .bold))
                             .foregroundStyle(Color.white)
                             .padding(4)
@@ -491,10 +469,10 @@ public struct FocusFlightCard: View {
                             .clipShape(Circle(), style: FillStyle(antialiased: true))
                     }
                     .buttonStyle(.plain)
-                    .help(state == .pitStop ? "Resume Cruise" : "Gate Hold")
+                    .help(engine.state == .pitStop ? "Resume Cruise" : "Gate Hold")
                     
                     Button {
-                        onDock?()
+                        engine.completeTrip()
                     } label: {
                         Image(systemName: "checkmark")
                             .font(.system(size: 8.5, weight: .bold))
@@ -507,7 +485,7 @@ public struct FocusFlightCard: View {
                     .help("Touchdown / Complete Flight")
                     
                     Button {
-                        onAbort?()
+                        engine.cancelTrip()
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 8.5, weight: .bold))
@@ -522,6 +500,19 @@ public struct FocusFlightCard: View {
             }
             
             HStack(spacing: 2.5) {
+                if let onOpenGarage = onOpenGarage {
+                    Button {
+                        onOpenGarage()
+                    } label: {
+                        Image(systemName: "airplane")
+                            .font(.system(size: 8.5))
+                            .foregroundStyle(KaruTheme.textMuted)
+                            .padding(3)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Aircraft Fleet & Audio")
+                }
+
                 Button {
                     onOpenLogbook?()
                 } label: {
@@ -634,8 +625,10 @@ public struct FocusFlightCard: View {
                         Button {
                             if isOrigin {
                                 originAirport = airport
+                                engine.updateRoute(origin: airport.code, destination: destinationAirport.code)
                             } else {
                                 destinationAirport = airport
+                                engine.updateRoute(origin: originAirport.code, destination: airport.code)
                             }
                             withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                                 activeDrawer = nil
@@ -687,11 +680,12 @@ public struct FocusFlightCard: View {
         ScrollView {
             VStack(spacing: 4) {
                 ForEach(FocusSeatClass.allCases) { seat in
-                    let isSelected = !isCustomSeatSelected && selectedSeat == seat
+                    let isSelected = !isCustomSeatSelected && (currentSeatCode == seat.rawValue || selectedSeat == seat)
                     
                     Button {
                         selectedSeat = seat
                         isCustomSeatSelected = false
+                        engine.updateSeat(seatClass: seat)
                         withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                             activeDrawer = nil
                         }
@@ -738,8 +732,13 @@ public struct FocusFlightCard: View {
 
                 // Custom Mission & Seat Option
                 VStack(spacing: 5) {
+                    let isSelectedCustom = isCustomSeatSelected || (FocusSeatClass.find(code: currentSeatCode) == nil)
+                    
                     Button {
                         isCustomSeatSelected = true
+                        let code = customSeatCode.isEmpty ? "7X" : customSeatCode.uppercased()
+                        let title = customTaskName.isEmpty ? "CUSTOM" : customTaskName.uppercased()
+                        engine.updateSeat(seatCode: code, taskTitle: title, seatIcon: customSeatIcon)
                         withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                             activeDrawer = nil
                         }
@@ -770,7 +769,7 @@ public struct FocusFlightCard: View {
                             
                             Spacer()
                             
-                            if isCustomSeatSelected {
+                            if isSelectedCustom {
                                 Image(systemName: "checkmark.seal.fill")
                                     .font(.system(size: 11))
                                     .foregroundStyle(Color(hex: 0xFF5C00))
@@ -778,7 +777,7 @@ public struct FocusFlightCard: View {
                         }
                         .padding(.horizontal, 8)
                         .padding(.vertical, 5)
-                        .background(isCustomSeatSelected ? KaruTheme.surfaceElevated : Color.white.opacity(0.03))
+                        .background(isSelectedCustom ? KaruTheme.surfaceElevated : Color.white.opacity(0.03))
                         .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
                     }
                     .buttonStyle(.plain)
@@ -816,6 +815,9 @@ public struct FocusFlightCard: View {
 
                         Button {
                             isCustomSeatSelected = true
+                            let code = customSeatCode.isEmpty ? "7X" : customSeatCode.uppercased()
+                            let title = customTaskName.isEmpty ? "CUSTOM" : customTaskName.uppercased()
+                            engine.updateSeat(seatCode: code, taskTitle: title, seatIcon: customSeatIcon)
                             withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                                 activeDrawer = nil
                             }

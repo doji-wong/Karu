@@ -11,6 +11,8 @@ public struct GarageHangarView: View {
     @State private var isSoundEnabled: Bool = true
     @State private var ambientVolume: Double = 0.6
 
+    @State private var isAnnouncementsEnabled: Bool = true
+
     public init(
         engine: TransitEngine,
         audioEngine: AudioEngine,
@@ -98,13 +100,13 @@ public struct GarageHangarView: View {
                     }
                 }
             }
-            .frame(maxHeight: 280)
+            .frame(maxHeight: 260)
 
             Divider().background(KaruTheme.cardBorder)
 
             // Audio Tuning Controls
             VStack(alignment: .leading, spacing: 10) {
-                Text("IN-FLIGHT CABIN AMBIENT SOUNDSCAPE")
+                Text("IN-FLIGHT CABIN AMBIENT SOUNDSCAPE & PA")
                     .font(KaruTheme.captionMono)
                     .foregroundStyle(KaruTheme.textSecondary)
 
@@ -125,6 +127,34 @@ public struct GarageHangarView: View {
                     }
                 }
                 .font(KaruTheme.subheadline)
+
+                HStack {
+                    Toggle("Captain Voice Announcements", isOn: $isAnnouncementsEnabled)
+                        .onChange(of: isAnnouncementsEnabled) { _, newValue in
+                            audioEngine.isAnnouncementsEnabled = newValue
+                        }
+
+                    Spacer()
+
+                    Button {
+                        audioEngine.speakAnnouncement("Welcome aboard Flight FL 288 to Tokyo. Cruising altitude reached. Focus flight engaged.", playChime: true)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "speaker.wave.2.fill")
+                                .font(.system(size: 9, weight: .bold))
+                            Text("Test PA")
+                                .font(KaruTheme.captionMono)
+                        }
+                        .foregroundStyle(Color.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(KaruTheme.surfaceElevated)
+                        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .help("Preview Captain Cabin Voice Announcement")
+                }
+                .font(KaruTheme.subheadline)
             }
         }
         .padding(20)
@@ -135,6 +165,7 @@ public struct GarageHangarView: View {
             self.selectedVehicle = saved.type
             self.isSoundEnabled = saved.isSoundEnabled
             self.ambientVolume = saved.ambientVolume
+            self.isAnnouncementsEnabled = audioEngine.isAnnouncementsEnabled
         }
     }
 
