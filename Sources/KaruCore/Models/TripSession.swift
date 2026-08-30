@@ -9,6 +9,32 @@ public enum FlightPreset: String, Codable, Sendable, CaseIterable, Identifiable 
 
     public var id: String { rawValue }
 
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+        switch raw {
+        case "sprint25", "cityDash25":
+            self = .sprint25
+        case "cruise50", "expressway50":
+            self = .cruise50
+        case "longHaul90", "interstate90":
+            self = .longHaul90
+        case "openFlight", "openHighway":
+            self = .openFlight
+        default:
+            if let matched = FlightPreset(rawValue: raw) {
+                self = matched
+            } else {
+                self = .sprint25
+            }
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+
     public var displayName: String {
         switch self {
         case .sprint25: return "Short Haul Sprint (25m)"
@@ -98,6 +124,73 @@ public struct TripSession: Identifiable, Codable, Sendable, Equatable {
     public var distanceTraveledKm: Double {
         get { distanceTraveledNM * 1.852 }
         set { distanceTraveledNM = newValue / 1.852 }
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case habitId
+        case habitName
+        case preset
+        case targetDuration
+        case startDate
+        case endDate
+        case cruisingDuration
+        case stalledDuration
+        case pausedDuration
+        case distanceTraveledNM
+        case distanceTraveledKm
+        case turbulenceLogs
+        case incidents
+        case isCompleted
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        self.habitId = try container.decodeIfPresent(UUID.self, forKey: .habitId)
+        self.habitName = try container.decodeIfPresent(String.self, forKey: .habitName)
+        self.preset = try container.decodeIfPresent(FlightPreset.self, forKey: .preset) ?? .sprint25
+        self.targetDuration = try container.decodeIfPresent(TimeInterval.self, forKey: .targetDuration)
+        self.startDate = try container.decodeIfPresent(Date.self, forKey: .startDate) ?? Date()
+        self.endDate = try container.decodeIfPresent(Date.self, forKey: .endDate)
+        self.cruisingDuration = try container.decodeIfPresent(TimeInterval.self, forKey: .cruisingDuration) ?? 0
+        self.stalledDuration = try container.decodeIfPresent(TimeInterval.self, forKey: .stalledDuration) ?? 0
+        self.pausedDuration = try container.decodeIfPresent(TimeInterval.self, forKey: .pausedDuration) ?? 0
+
+        if let nm = try container.decodeIfPresent(Double.self, forKey: .distanceTraveledNM) {
+            self.distanceTraveledNM = nm
+        } else if let km = try container.decodeIfPresent(Double.self, forKey: .distanceTraveledKm) {
+            self.distanceTraveledNM = km / 1.852
+        } else {
+            self.distanceTraveledNM = 0
+        }
+
+        if let logs = try container.decodeIfPresent([TurbulenceEncounter].self, forKey: .turbulenceLogs) {
+            self.turbulenceLogs = logs
+        } else if let legacyIncidents = try container.decodeIfPresent([TurbulenceEncounter].self, forKey: .incidents) {
+            self.turbulenceLogs = legacyIncidents
+        } else {
+            self.turbulenceLogs = []
+        }
+
+        self.isCompleted = try container.decodeIfPresent(Bool.self, forKey: .isCompleted) ?? false
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encodeIfPresent(habitId, forKey: .habitId)
+        try container.encodeIfPresent(habitName, forKey: .habitName)
+        try container.encode(preset, forKey: .preset)
+        try container.encodeIfPresent(targetDuration, forKey: .targetDuration)
+        try container.encode(startDate, forKey: .startDate)
+        try container.encodeIfPresent(endDate, forKey: .endDate)
+        try container.encode(cruisingDuration, forKey: .cruisingDuration)
+        try container.encode(stalledDuration, forKey: .stalledDuration)
+        try container.encode(pausedDuration, forKey: .pausedDuration)
+        try container.encode(distanceTraveledNM, forKey: .distanceTraveledNM)
+        try container.encode(turbulenceLogs, forKey: .turbulenceLogs)
+        try container.encode(isCompleted, forKey: .isCompleted)
     }
 
     public init(

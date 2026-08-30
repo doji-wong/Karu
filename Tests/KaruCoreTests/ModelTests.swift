@@ -129,4 +129,38 @@ struct ModelTests {
         #expect(profile.type == .classicSarao)
         #expect(profile.ambientVolume == 0.8)
     }
+
+    @Test("FlightPreset and AircraftType decode legacy raw values correctly")
+    func legacyEnumDecoding() throws {
+        let decoder = JSONDecoder()
+
+        // FlightPreset legacy mappings
+        let cityDash = try decoder.decode(FlightPreset.self, from: Data("\"cityDash25\"".utf8))
+        #expect(cityDash == .sprint25)
+
+        let expressway = try decoder.decode(FlightPreset.self, from: Data("\"expressway50\"".utf8))
+        #expect(expressway == .cruise50)
+
+        let interstate = try decoder.decode(FlightPreset.self, from: Data("\"interstate90\"".utf8))
+        #expect(interstate == .longHaul90)
+
+        let openHwy = try decoder.decode(FlightPreset.self, from: Data("\"openHighway\"".utf8))
+        #expect(openHwy == .openFlight)
+
+        // AircraftType legacy mappings
+        let midnight = try decoder.decode(AircraftType.self, from: Data("\"midnightEV\"".utf8))
+        #expect(midnight == .a350F)
+
+        let sarao = try decoder.decode(AircraftType.self, from: Data("\"classicSarao\"".utf8))
+        #expect(sarao == .b787Dreamliner)
+
+        let rainHatchback = try decoder.decode(AircraftType.self, from: Data("\"nightRainHatchback\"".utf8))
+        #expect(rainHatchback == .concordeSST)
+
+        let shinkansen = try decoder.decode(AircraftType.self, from: Data("\"shinkansenExpress\"".utf8))
+        #expect(shinkansen == .gulfstreamG650)
+
+        let bus = try decoder.decode(AircraftType.self, from: Data("\"coastalBus\"".utf8))
+        #expect(bus == .cessna172)
+    }
 }

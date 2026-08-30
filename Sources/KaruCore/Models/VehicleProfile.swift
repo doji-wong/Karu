@@ -10,6 +10,34 @@ public enum AircraftType: String, Codable, Sendable, CaseIterable, Identifiable 
 
     public var id: String { rawValue }
 
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+        switch raw {
+        case "a350F", "midnightEV":
+            self = .a350F
+        case "b787Dreamliner", "classicSarao":
+            self = .b787Dreamliner
+        case "concordeSST", "nightRainHatchback":
+            self = .concordeSST
+        case "gulfstreamG650", "shinkansenExpress":
+            self = .gulfstreamG650
+        case "cessna172", "coastalBus":
+            self = .cessna172
+        default:
+            if let matched = AircraftType(rawValue: raw) {
+                self = matched
+            } else {
+                self = .a350F
+            }
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+
     public var name: String {
         switch self {
         case .a350F: return "Airbus A350F"

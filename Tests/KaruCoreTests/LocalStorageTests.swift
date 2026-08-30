@@ -94,4 +94,70 @@ struct LocalStorageTests {
         let recoveredHabits = storage.loadHabits()
         #expect(recoveredHabits.isEmpty)
     }
+
+    @Test("Legacy trip_history.json with cityDash25 and incidents decodes seamlessly")
+    func legacyTripHistoryDecoding() throws {
+        let (storage, tempDir) = createTestStorage()
+        defer { cleanupTestStorage(url: tempDir) }
+
+        let legacyJSON = """
+        [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "preset": "cityDash25",
+            "targetDuration": 1500,
+            "startDate": "2026-08-29T10:00:00Z",
+            "endDate": "2026-08-29T10:25:00Z",
+            "cruisingDuration": 1200,
+            "stalledDuration": 300,
+            "pausedDuration": 0,
+            "distanceTraveledKm": 37.04,
+            "incidents": [
+              {
+                "id": "66666666-7777-8888-9999-000000000000",
+                "timestamp": "2026-08-29T10:10:00Z",
+                "appName": "Discord",
+                "bundleIdentifier": "com.hnc.Discord",
+                "duration": 300
+              }
+            ],
+            "isCompleted": true
+          }
+        ]
+        """.data(using: .utf8)!
+
+        try legacyJSON.write(to: storage.tripsFileURL)
+
+        let loaded = storage.loadTripHistory()
+        #expect(loaded.count == 1)
+        guard let session = loaded.first else { return }
+        #expect(session.preset == .sprint25)
+        #expect(session.cruisingDuration == 1200)
+        #expect(session.stalledDuration == 300)
+        #expect(abs(session.distanceTraveledNM - 20.0) < 0.1)
+        #expect(session.turbulenceLogs.count == 1)
+        #expect(session.turbulenceLogs.first?.appName == "Discord")
+        #expect(session.isCompleted == true)
+    }
+
+    @Test("Legacy vehicle_profile.json with midnightEV decodes to a350F")
+    func legacyVehicleProfileDecoding() throws {
+        let (storage, tempDir) = createTestStorage()
+        defer { cleanupTestStorage(url: tempDir) }
+
+        let legacyVehicleJSON = """
+        {
+          "type": "midnightEV",
+          "isSoundEnabled": true,
+          "ambientVolume": 0.75
+        }
+        """.data(using: .utf8)!
+
+        try legacyVehicleJSON.write(to: storage.vehicleFileURL)
+
+        let loaded = storage.loadVehicleProfile()
+        #expect(loaded.type == .a350F)
+        #expect(loaded.isSoundEnabled == true)
+        #expect(loaded.ambientVolume == 0.75)
+    }
 }
