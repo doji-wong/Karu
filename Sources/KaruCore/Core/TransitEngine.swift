@@ -28,9 +28,10 @@ public final class TransitEngine {
 
     // MARK: - Trip Lifecycle Controls
 
-    /// Start a new focus journey with a given preset and optional linked habit.
+    /// Start a new focus journey with a given preset or custom duration and optional linked habit.
     public func startTrip(
         preset: TripPreset = .cityDash25,
+        customDuration: TimeInterval? = nil,
         habit: Habit? = nil,
         vehicle: VehicleType = .midnightEV
     ) {
@@ -38,11 +39,12 @@ public final class TransitEngine {
         stopTimer()
         activeIncident = nil
         
+        let target = customDuration ?? preset.targetDuration
         let session = TripSession(
             habitId: habit?.id,
             habitName: habit?.name,
             preset: preset,
-            targetDuration: preset.targetDuration,
+            targetDuration: target,
             startDate: Date()
         )
         
