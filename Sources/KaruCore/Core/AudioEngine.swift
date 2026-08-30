@@ -338,9 +338,9 @@ public final class AudioEngine {
         let characterLayer: (Double, Int, Int) -> Double
     }
 
-    private func aircraftParams(for aircraft: VehicleType) -> AircraftAudioParams {
+    private func aircraftParams(for aircraft: AircraftType) -> AircraftAudioParams {
         switch aircraft {
-        case .midnightEV:
+        case .a350F:
             // Airbus A350F: Quiet carbon-composite cabin + Rolls-Royce Trent XWB turbofan hum
             return AircraftAudioParams(
                 engineFreq: 58.0,
@@ -354,7 +354,7 @@ public final class AudioEngine {
                 }
             )
 
-        case .classicSarao:
+        case .b787Dreamliner:
             // Boeing 787-9 Dreamliner: Serene acoustic cabin dampening + gentle high-altitude mist
             return AircraftAudioParams(
                 engineFreq: 64.0,
@@ -368,7 +368,7 @@ public final class AudioEngine {
                 }
             )
 
-        case .nightRainHatchback:
+        case .concordeSST:
             // Concorde SST: Supersonic delta-wing airflow rush + Olympus turbojet thrust
             return AircraftAudioParams(
                 engineFreq: 88.0,
@@ -382,7 +382,7 @@ public final class AudioEngine {
                 }
             )
 
-        case .shinkansenExpress:
+        case .gulfstreamG650:
             // Gulfstream G650: Whisper-quiet executive jet FL450 cruising air
             return AircraftAudioParams(
                 engineFreq: 72.0,
@@ -395,7 +395,7 @@ public final class AudioEngine {
                 }
             )
 
-        case .coastalBus:
+        case .cessna172:
             // Cessna 172 Skyhawk: Lycoming 4-cylinder rhythmic propeller drone
             return AircraftAudioParams(
                 engineFreq: 42.0,

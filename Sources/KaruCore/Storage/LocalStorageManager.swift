@@ -33,7 +33,6 @@ public final class LocalStorageManager: @unchecked Sendable {
     public var tripsFileURL: URL { baseDirectory.appendingPathComponent("trip_history.json") }
     public var filtersFileURL: URL { baseDirectory.appendingPathComponent("app_filters.json") }
     public var vehicleFileURL: URL { baseDirectory.appendingPathComponent("vehicle_profile.json") }
-    public var scratchpadFileURL: URL { baseDirectory.appendingPathComponent("scratchpad.md") }
 
     // MARK: - Generic Atomic Read/Write
 
@@ -101,27 +100,6 @@ public final class LocalStorageManager: @unchecked Sendable {
 
     public func loadVehicleProfile() -> VehicleProfile {
         load(from: vehicleFileURL, defaultValue: VehicleProfile())
-    }
-
-    // MARK: - Scratchpad Plaintext / Markdown
-
-    public func saveScratchpadText(_ text: String) throws {
-        lock.lock()
-        defer { lock.unlock() }
-
-        ensureDirectoryExists()
-        guard let data = text.data(using: .utf8) else { return }
-        try data.write(to: scratchpadFileURL, options: [.atomic])
-    }
-
-    public func loadScratchpadText() -> String {
-        lock.lock()
-        defer { lock.unlock() }
-
-        guard fileManager.fileExists(atPath: scratchpadFileURL.path) else {
-            return ""
-        }
-        return (try? String(contentsOf: scratchpadFileURL, encoding: .utf8)) ?? ""
     }
 
     // MARK: - Directory Management

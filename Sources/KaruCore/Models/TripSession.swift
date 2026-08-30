@@ -1,42 +1,56 @@
 import Foundation
 
-/// Standard presets for focus trips.
-public enum TripPreset: String, Codable, Sendable, CaseIterable, Identifiable {
-    case cityDash25
-    case expressway50
-    case interstate90
-    case openHighway
+/// Standard presets for focus flights.
+public enum FlightPreset: String, Codable, Sendable, CaseIterable, Identifiable {
+    case sprint25 = "sprint25"
+    case cruise50 = "cruise50"
+    case longHaul90 = "longHaul90"
+    case openFlight = "openFlight"
 
     public var id: String { rawValue }
 
     public var displayName: String {
         switch self {
-        case .cityDash25: return "City Dash (25m)"
-        case .expressway50: return "Expressway Transit (50m)"
-        case .interstate90: return "Interstate Run (90m)"
-        case .openHighway: return "Open Highway (Stopwatch)"
+        case .sprint25: return "Short Haul Sprint (25m)"
+        case .cruise50: return "Cruising Altitude (50m)"
+        case .longHaul90: return "Transcontinental (90m)"
+        case .openFlight: return "Open Flight Deck (Stopwatch)"
         }
     }
 
-    /// Target duration in seconds (nil for open highway stopwatch).
+    /// Target duration in seconds (nil for open flight stopwatch).
     public var targetDuration: TimeInterval? {
         switch self {
-        case .cityDash25: return 25 * 60
-        case .expressway50: return 50 * 60
-        case .interstate90: return 90 * 60
-        case .openHighway: return nil
+        case .sprint25: return 25 * 60
+        case .cruise50: return 50 * 60
+        case .longHaul90: return 90 * 60
+        case .openFlight: return nil
         }
     }
 
-    /// Expected target distance in kilometers assuming 100 km/h cruising.
-    public var targetDistanceKm: Double? {
+    /// Expected target distance in Nautical Miles assuming 540 kts cruising.
+    public var targetDistanceNM: Double? {
         guard let duration = targetDuration else { return nil }
-        return (duration / 3600.0) * 100.0
+        return (duration / 3600.0) * 540.0
+    }
+    
+    public var targetDistanceKm: Double? {
+        guard let nm = targetDistanceNM else { return nil }
+        return nm * 1.852
     }
 }
 
-/// A recorded distraction stall incident during a trip.
-public struct TrafficIncident: Identifiable, Codable, Sendable, Equatable, Hashable {
+// Backward compatibility alias
+public typealias TripPreset = FlightPreset
+public extension FlightPreset {
+    static var cityDash25: FlightPreset { .sprint25 }
+    static var expressway50: FlightPreset { .cruise50 }
+    static var interstate90: FlightPreset { .longHaul90 }
+    static var openHighway: FlightPreset { .openFlight }
+}
+
+/// A recorded distraction stall / turbulence encounter during a flight.
+public struct TurbulenceEncounter: Identifiable, Codable, Sendable, Equatable, Hashable {
     public let id: UUID
     public let timestamp: Date
     public let appName: String
@@ -58,37 +72,47 @@ public struct TrafficIncident: Identifiable, Codable, Sendable, Equatable, Hasha
     }
 }
 
-/// A complete log of an active or historical focus session.
+public typealias TrafficIncident = TurbulenceEncounter
+
+/// A complete log of an active or historical focus flight session.
 public struct TripSession: Identifiable, Codable, Sendable, Equatable {
     public let id: UUID
     public var habitId: UUID?
     public var habitName: String?
-    public var preset: TripPreset
+    public var preset: FlightPreset
     public var targetDuration: TimeInterval?
     public var startDate: Date
     public var endDate: Date?
     public var cruisingDuration: TimeInterval
     public var stalledDuration: TimeInterval
     public var pausedDuration: TimeInterval
-    public var distanceTraveledKm: Double
-    public var incidents: [TrafficIncident]
-    public var scratchpadNotes: String
+    public var distanceTraveledNM: Double
+    public var turbulenceLogs: [TurbulenceEncounter]
     public var isCompleted: Bool
+
+    // Backward compatibility bridges
+    public var incidents: [TurbulenceEncounter] {
+        get { turbulenceLogs }
+        set { turbulenceLogs = newValue }
+    }
+    public var distanceTraveledKm: Double {
+        get { distanceTraveledNM * 1.852 }
+        set { distanceTraveledNM = newValue / 1.852 }
+    }
 
     public init(
         id: UUID = UUID(),
         habitId: UUID? = nil,
         habitName: String? = nil,
-        preset: TripPreset = .cityDash25,
+        preset: FlightPreset = .sprint25,
         targetDuration: TimeInterval? = 25 * 60,
         startDate: Date = Date(),
         endDate: Date? = nil,
         cruisingDuration: TimeInterval = 0,
         stalledDuration: TimeInterval = 0,
         pausedDuration: TimeInterval = 0,
-        distanceTraveledKm: Double = 0,
-        incidents: [TrafficIncident] = [],
-        scratchpadNotes: String = "",
+        distanceTraveledNM: Double = 0,
+        turbulenceLogs: [TurbulenceEncounter] = [],
         isCompleted: Bool = false
     ) {
         self.id = id
@@ -101,29 +125,32 @@ public struct TripSession: Identifiable, Codable, Sendable, Equatable {
         self.cruisingDuration = cruisingDuration
         self.stalledDuration = stalledDuration
         self.pausedDuration = pausedDuration
-        self.distanceTraveledKm = distanceTraveledKm
-        self.incidents = incidents
-        self.scratchpadNotes = scratchpadNotes
+        self.distanceTraveledNM = distanceTraveledNM
+        self.turbulenceLogs = turbulenceLogs
         self.isCompleted = isCompleted
     }
 
-    /// Total active transit time (cruising + stalled), excluding manual pauses.
-    public var activeTransitDuration: TimeInterval {
+    /// Total active flight time (cruising + turbulence), excluding manual gate holds.
+    public var activeFlightDuration: TimeInterval {
         cruisingDuration + stalledDuration
     }
 
-    /// Total elapsed wall-clock duration from start to finish (or now).
+    public var activeTransitDuration: TimeInterval {
+        activeFlightDuration
+    }
+
+    /// Total elapsed wall-clock duration from departure to touchdown.
     public var totalElapsedDuration: TimeInterval {
         cruisingDuration + stalledDuration + pausedDuration
     }
 
-    /// Cruising efficiency percentage (0% to 100%).
+    /// Cruising on-time efficiency percentage (0% to 100%).
     public var cruiseEfficiency: Double {
-        guard activeTransitDuration > 0 else { return 100.0 }
-        return min(100.0, max(0.0, (cruisingDuration / activeTransitDuration) * 100.0))
+        guard activeFlightDuration > 0 else { return 100.0 }
+        return min(100.0, max(0.0, (cruisingDuration / activeFlightDuration) * 100.0))
     }
 
-    /// Completion progress percentage (0.0 to 1.0) based on target duration.
+    /// Completion progress percentage (0.0 to 1.0) based on target flight duration.
     public var progressFraction: Double {
         guard let target = targetDuration, target > 0 else { return 0.0 }
         return min(1.0, cruisingDuration / target)

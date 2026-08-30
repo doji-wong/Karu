@@ -45,11 +45,11 @@ public enum TransitState: String, Codable, Sendable, CaseIterable {
         }
     }
 
-    /// Standard velocity in km/h for the current state.
+    /// Standard cruising ground speed in Knots (kts) for the current state.
     public var targetVelocity: Double {
         switch self {
         case .cruising:
-            return 100.0
+            return 540.0
         case .idle, .trafficStalled, .pitStop, .completed:
             return 0.0
         }

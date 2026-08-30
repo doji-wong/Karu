@@ -1,43 +1,48 @@
 import Foundation
 import Observation
 
-/// The central state machine and velocity telemetry engine for Karu.
+/// The central state machine and velocity telemetry engine for Karu Focus Flights.
 @Observable
 @MainActor
 public final class TransitEngine {
     
     // MARK: - Published State
     public private(set) var state: TransitState = .idle
-    public private(set) var currentVelocity: Double = 0.0 // km/h
+    public private(set) var currentVelocity: Double = 0.0 // kts (Knots / Ground Speed)
     public private(set) var activeSession: TripSession?
     public private(set) var currentHabit: Habit?
-    public private(set) var activeVehicle: VehicleType = .midnightEV
+    public private(set) var activeAircraft: AircraftType = .a350F
     
-    // Active stall incident tracker
-    private var activeIncident: TrafficIncident?
+    public var activeVehicle: AircraftType {
+        get { activeAircraft }
+        set { activeAircraft = newValue }
+    }
     
-    // Internal timer for live trips
+    // Active turbulence encounter tracker
+    private var activeTurbulence: TurbulenceEncounter?
+    
+    // Internal timer for live flights
     private var timer: Timer?
     
     // Callbacks for decoupled listeners (AudioEngine, UI, Storage)
     public var onStateChanged: ((TransitState, TransitState) -> Void)?
     public var onTripCompleted: ((TripSession) -> Void)?
-    public var onIncidentLogged: ((TrafficIncident) -> Void)?
+    public var onIncidentLogged: ((TurbulenceEncounter) -> Void)?
 
     public init() {}
 
-    // MARK: - Trip Lifecycle Controls
+    // MARK: - Flight Lifecycle Controls
 
-    /// Start a new focus journey with a given preset or custom duration and optional linked habit.
+    /// Start a new focus flight with a given preset or custom duration and optional linked habit.
     public func startTrip(
-        preset: TripPreset = .cityDash25,
+        preset: FlightPreset = .sprint25,
         customDuration: TimeInterval? = nil,
         habit: Habit? = nil,
-        vehicle: VehicleType = .midnightEV
+        aircraft: AircraftType = .a350F
     ) {
         // Reset any existing session
         stopTimer()
-        activeIncident = nil
+        activeTurbulence = nil
         
         let target = customDuration ?? preset.targetDuration
         let session = TripSession(
@@ -50,40 +55,53 @@ public final class TransitEngine {
         
         self.activeSession = session
         self.currentHabit = habit
-        self.activeVehicle = vehicle
+        self.activeAircraft = aircraft
         
         let oldState = self.state
         self.state = .cruising
-        self.currentVelocity = 100.0
+        self.currentVelocity = 540.0 // 540 kts standard cruise
         
         onStateChanged?(oldState, .cruising)
         startTimer()
     }
+    
+    public func startTrip(
+        preset: FlightPreset = .sprint25,
+        customDuration: TimeInterval? = nil,
+        habit: Habit? = nil,
+        vehicle: AircraftType
+    ) {
+        startTrip(preset: preset, customDuration: customDuration, habit: habit, aircraft: vehicle)
+    }
 
-    /// Pause the trip for a pit stop.
-    public func togglePitStop() {
+    /// Pause the flight for a gate hold / coffee break.
+    public func toggleGateHold() {
         guard activeSession != nil else { return }
         let oldState = self.state
         
         if state == .pitStop {
-            // Resume to cruising (or stalled if frontmost is hazard)
+            // Resume to cruising
             state = .cruising
-            currentVelocity = 100.0
+            currentVelocity = 540.0
             onStateChanged?(oldState, .cruising)
         } else if state == .cruising || state == .trafficStalled {
-            // Close any open incident before entering pit stop
-            closeActiveIncident()
+            // Close any open turbulence encounter before entering gate hold
+            closeActiveTurbulence()
             state = .pitStop
             currentVelocity = 0.0
             onStateChanged?(oldState, .pitStop)
         }
     }
+    
+    public func togglePitStop() {
+        toggleGateHold()
+    }
 
-    /// Complete the current trip early or upon destination arrival.
+    /// Complete the current flight (touchdown) early or upon reaching destination.
     public func completeTrip() {
         guard var session = activeSession else { return }
         stopTimer()
-        closeActiveIncident()
+        closeActiveTurbulence()
         
         let oldState = self.state
         state = .completed
@@ -103,10 +121,10 @@ public final class TransitEngine {
         onTripCompleted?(session)
     }
 
-    /// Cancel the active trip without saving as completed.
+    /// Abort the active flight without saving as completed.
     public func cancelTrip() {
         stopTimer()
-        closeActiveIncident()
+        closeActiveTurbulence()
         
         let oldState = self.state
         state = .idle
@@ -133,9 +151,9 @@ public final class TransitEngine {
         switch category {
         case .focusWorkspace:
             if state == .trafficStalled {
-                closeActiveIncident()
+                closeActiveTurbulence()
                 state = .cruising
-                currentVelocity = 100.0
+                currentVelocity = 540.0
                 onStateChanged?(oldState, .cruising)
             }
             
@@ -143,7 +161,7 @@ public final class TransitEngine {
             if state == .cruising {
                 state = .trafficStalled
                 currentVelocity = 0.0
-                activeIncident = TrafficIncident(
+                activeTurbulence = TurbulenceEncounter(
                     appName: appName,
                     bundleIdentifier: bundleIdentifier
                 )
@@ -151,14 +169,14 @@ public final class TransitEngine {
             }
             
         case .neutralUtility:
-            // Neutral utility: do not alter cruising vs stalled state
+            // Neutral utility: do not alter cruising vs turbulence state
             break
         }
     }
 
     // MARK: - Tick & Telemetry Calculations
 
-    /// Advance elapsed time by a given delta (called by internal timer or test runner).
+    /// Advance elapsed flight time by a given delta (called by internal timer or test runner).
     public func tick(seconds: TimeInterval = 1.0) {
         guard var session = activeSession else { return }
         guard state != .idle && state != .completed else { return }
@@ -166,11 +184,11 @@ public final class TransitEngine {
         switch state {
         case .cruising:
             session.cruisingDuration += seconds
-            // Distance (km) = (seconds / 3600) * velocity (100km/h)
+            // Nautical Miles = (seconds / 3600) * velocity (540 kts)
             let distanceDelta = (seconds / 3600.0) * currentVelocity
-            session.distanceTraveledKm += distanceDelta
+            session.distanceTraveledNM += distanceDelta
             
-            // Check if destination is reached for fixed routes
+            // Check if destination is reached for fixed duration flights
             if let target = session.targetDuration, session.cruisingDuration >= target {
                 self.activeSession = session
                 completeTrip()
@@ -179,8 +197,8 @@ public final class TransitEngine {
 
         case .trafficStalled:
             session.stalledDuration += seconds
-            if activeIncident != nil {
-                activeIncident?.duration += seconds
+            if activeTurbulence != nil {
+                activeTurbulence?.duration += seconds
             }
 
         case .pitStop:
@@ -195,14 +213,14 @@ public final class TransitEngine {
 
     // MARK: - Helper Methods
 
-    private func closeActiveIncident() {
-        if let incident = activeIncident {
-            if incident.duration > 0, var session = activeSession {
-                session.incidents.append(incident)
+    private func closeActiveTurbulence() {
+        if let encounter = activeTurbulence {
+            if encounter.duration > 0, var session = activeSession {
+                session.turbulenceLogs.append(encounter)
                 self.activeSession = session
-                onIncidentLogged?(incident)
+                onIncidentLogged?(encounter)
             }
-            activeIncident = nil
+            activeTurbulence = nil
         }
     }
 
