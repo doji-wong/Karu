@@ -115,6 +115,11 @@ public struct TripSession: Identifiable, Codable, Sendable, Equatable {
     public var distanceTraveledNM: Double
     public var turbulenceLogs: [TurbulenceEncounter]
     public var isCompleted: Bool
+    public var originAirportCode: String
+    public var destinationAirportCode: String
+    public var seatCode: String
+    public var taskTitle: String
+    public var seatIcon: String
 
     // Backward compatibility bridges
     public var incidents: [TurbulenceEncounter] {
@@ -142,6 +147,11 @@ public struct TripSession: Identifiable, Codable, Sendable, Equatable {
         case turbulenceLogs
         case incidents
         case isCompleted
+        case originAirportCode
+        case destinationAirportCode
+        case seatCode
+        case taskTitle
+        case seatIcon
     }
 
     public init(from decoder: Decoder) throws {
@@ -174,6 +184,11 @@ public struct TripSession: Identifiable, Codable, Sendable, Equatable {
         }
 
         self.isCompleted = try container.decodeIfPresent(Bool.self, forKey: .isCompleted) ?? false
+        self.originAirportCode = try container.decodeIfPresent(String.self, forKey: .originAirportCode) ?? "YYZ"
+        self.destinationAirportCode = try container.decodeIfPresent(String.self, forKey: .destinationAirportCode) ?? "HND"
+        self.seatCode = try container.decodeIfPresent(String.self, forKey: .seatCode) ?? "5F"
+        self.taskTitle = try container.decodeIfPresent(String.self, forKey: .taskTitle) ?? "CODING"
+        self.seatIcon = try container.decodeIfPresent(String.self, forKey: .seatIcon) ?? "curlybraces"
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -191,6 +206,11 @@ public struct TripSession: Identifiable, Codable, Sendable, Equatable {
         try container.encode(distanceTraveledNM, forKey: .distanceTraveledNM)
         try container.encode(turbulenceLogs, forKey: .turbulenceLogs)
         try container.encode(isCompleted, forKey: .isCompleted)
+        try container.encode(originAirportCode, forKey: .originAirportCode)
+        try container.encode(destinationAirportCode, forKey: .destinationAirportCode)
+        try container.encode(seatCode, forKey: .seatCode)
+        try container.encode(taskTitle, forKey: .taskTitle)
+        try container.encode(seatIcon, forKey: .seatIcon)
     }
 
     public init(
@@ -206,7 +226,12 @@ public struct TripSession: Identifiable, Codable, Sendable, Equatable {
         pausedDuration: TimeInterval = 0,
         distanceTraveledNM: Double = 0,
         turbulenceLogs: [TurbulenceEncounter] = [],
-        isCompleted: Bool = false
+        isCompleted: Bool = false,
+        originAirportCode: String = "YYZ",
+        destinationAirportCode: String = "HND",
+        seatCode: String = "5F",
+        taskTitle: String = "CODING",
+        seatIcon: String = "curlybraces"
     ) {
         self.id = id
         self.habitId = habitId
@@ -221,6 +246,11 @@ public struct TripSession: Identifiable, Codable, Sendable, Equatable {
         self.distanceTraveledNM = distanceTraveledNM
         self.turbulenceLogs = turbulenceLogs
         self.isCompleted = isCompleted
+        self.originAirportCode = originAirportCode
+        self.destinationAirportCode = destinationAirportCode
+        self.seatCode = seatCode
+        self.taskTitle = taskTitle
+        self.seatIcon = seatIcon
     }
 
     /// Total active flight time (cruising + turbulence), excluding manual gate holds.

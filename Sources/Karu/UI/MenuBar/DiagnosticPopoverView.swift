@@ -41,6 +41,18 @@ public struct DiagnosticPopoverView: View {
                     engine.startTrip(preset: preset, customDuration: customDuration)
                     audioEngine.start()
                 },
+                onStartFlight: { preset, customDuration, origin, destination, seatCode, taskTitle, seatIcon in
+                    engine.startTrip(
+                        preset: preset,
+                        customDuration: customDuration,
+                        origin: origin,
+                        destination: destination,
+                        seatCode: seatCode,
+                        taskTitle: taskTitle,
+                        seatIcon: seatIcon
+                    )
+                    audioEngine.start()
+                },
                 onHold: {
                     engine.toggleGateHold()
                 },

@@ -12,6 +12,11 @@ public final class TransitEngine {
     public private(set) var activeSession: TripSession?
     public private(set) var currentHabit: Habit?
     public private(set) var activeAircraft: AircraftType = .a350F
+    public private(set) var activeOrigin: String = "YYZ"
+    public private(set) var activeDestination: String = "HND"
+    public private(set) var activeSeatCode: String = "5F"
+    public private(set) var activeTaskTitle: String = "CODING"
+    public private(set) var activeSeatIcon: String = "curlybraces"
     
     public var activeVehicle: AircraftType {
         get { activeAircraft }
@@ -38,7 +43,12 @@ public final class TransitEngine {
         preset: FlightPreset = .sprint25,
         customDuration: TimeInterval? = nil,
         habit: Habit? = nil,
-        aircraft: AircraftType = .a350F
+        aircraft: AircraftType = .a350F,
+        origin: String = "YYZ",
+        destination: String = "HND",
+        seatCode: String = "5F",
+        taskTitle: String = "CODING",
+        seatIcon: String = "curlybraces"
     ) {
         // Reset any existing session
         stopTimer()
@@ -50,12 +60,22 @@ public final class TransitEngine {
             habitName: habit?.name,
             preset: preset,
             targetDuration: target,
-            startDate: Date()
+            startDate: Date(),
+            originAirportCode: origin,
+            destinationAirportCode: destination,
+            seatCode: seatCode,
+            taskTitle: taskTitle,
+            seatIcon: seatIcon
         )
         
         self.activeSession = session
         self.currentHabit = habit
         self.activeAircraft = aircraft
+        self.activeOrigin = origin
+        self.activeDestination = destination
+        self.activeSeatCode = seatCode
+        self.activeTaskTitle = taskTitle
+        self.activeSeatIcon = seatIcon
         
         let oldState = self.state
         self.state = .cruising

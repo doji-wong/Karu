@@ -2,8 +2,8 @@ import SwiftUI
 import KaruCore
 
 /// Floating Avionics Flight HUD View for macOS.
-/// Primarily renders as an ultra-compact minimalist plane progress bar,
-/// and provides optional 1-click smooth expansion to the full Direction A Flight Card.
+/// Primarily renders as an ultra-compact minimalist plane progress bar with route-anchored runway
+/// and Style 2 monochrome dual seat badge (strictly zero emojis), with optional 1-click expansion.
 public struct FloatingHUDView: View {
     @Bindable public var engine: TransitEngine
     public var onClose: (() -> Void)?
@@ -46,6 +46,12 @@ public struct FloatingHUDView: View {
         return "-25M 00S"
     }
 
+    private var seatBadgeText: String {
+        let code = engine.activeSeatCode.isEmpty ? "5F" : engine.activeSeatCode.uppercased()
+        let title = engine.activeTaskTitle.isEmpty ? "CODING" : engine.activeTaskTitle.uppercased()
+        return "\(code) · \(title)"
+    }
+
     public var body: some View {
         Group {
             if isExpandedToFullCard {
@@ -65,17 +71,46 @@ public struct FloatingHUDView: View {
 
     @ViewBuilder
     private var compactFlightPillView: some View {
-        HStack(spacing: 8) {
-            // Luminous Airplane Slider Track (Plane Loading Bar)
-            LuminousSliderTrackView(
-                progress: progress,
-                state: engine.state,
-                remainingText: remainingTimeNegativeFormatted
-            )
-            .frame(height: 28)
-
-            // Quick Control Actions
+        HStack(spacing: 7) {
+            // 1. Style 2 Dual Seat Badge (Zero Emojis, Pure SF Symbol & Monospaced Typography)
             HStack(spacing: 3.5) {
+                Image(systemName: engine.activeSeatIcon.isEmpty ? "curlybraces" : engine.activeSeatIcon)
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(Color.white)
+                Text(seatBadgeText)
+                    .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(Color.white)
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3.5)
+            .background(
+                Capsule()
+                    .fill(KaruTheme.recessedTray)
+                    .overlay(
+                        Capsule().strokeBorder(Color.white.opacity(0.06), lineWidth: 0.5, antialiased: true)
+                    )
+            )
+
+            // 2. Route-Anchored Runway (Origin ✈ Destination)
+            HStack(spacing: 4) {
+                Text(engine.activeOrigin)
+                    .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(Color.white.opacity(0.65))
+
+                LuminousSliderTrackView(
+                    progress: progress,
+                    state: engine.state,
+                    remainingText: remainingTimeNegativeFormatted
+                )
+                .frame(height: 28)
+
+                Text(engine.activeDestination)
+                    .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(Color.white)
+            }
+
+            // 3. Quick Action Controls
+            HStack(spacing: 3) {
                 if engine.state != .idle && engine.state != .completed {
                     Button {
                         engine.toggleGateHold()
@@ -125,7 +160,7 @@ public struct FloatingHUDView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
-        .frame(width: 300, height: 40)
+        .frame(width: 390, height: 40)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(KaruTheme.carbonMatte)
@@ -154,8 +189,16 @@ public struct FloatingHUDView: View {
                 velocity: engine.currentVelocity,
                 activeSession: engine.activeSession,
                 aircraft: engine.activeAircraft,
-                onStart: { preset, customDuration in
-                    engine.startTrip(preset: preset, customDuration: customDuration)
+                onStartFlight: { preset, customDuration, origin, destination, seatCode, taskTitle, seatIcon in
+                    engine.startTrip(
+                        preset: preset,
+                        customDuration: customDuration,
+                        origin: origin,
+                        destination: destination,
+                        seatCode: seatCode,
+                        taskTitle: taskTitle,
+                        seatIcon: seatIcon
+                    )
                 },
                 onHold: {
                     engine.toggleGateHold()
@@ -169,7 +212,7 @@ public struct FloatingHUDView: View {
                 onToggleFloatingHUD: {
                     withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                         isExpandedToFullCard = false
-                        onSizeChange?(300, 40)
+                        onSizeChange?(390, 40)
                     }
                 }
             )
@@ -179,7 +222,7 @@ public struct FloatingHUDView: View {
                 Button {
                     withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                         isExpandedToFullCard = false
-                        onSizeChange?(300, 40)
+                        onSizeChange?(390, 40)
                     }
                 } label: {
                     Image(systemName: "arrow.down.right.and.arrow.up.left")

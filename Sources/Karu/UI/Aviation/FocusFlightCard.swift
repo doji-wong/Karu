@@ -21,6 +21,7 @@ public struct FocusFlightCard: View {
     public var aircraft: AircraftType
     public var audioEngine: AudioEngine?
     public var onStart: ((FlightPreset, TimeInterval?) -> Void)?
+    public var onStartFlight: ((FlightPreset, TimeInterval?, String, String, String, String, String) -> Void)?
     public var onHold: (() -> Void)?
     public var onDock: (() -> Void)?
     public var onAbort: (() -> Void)?
@@ -33,6 +34,12 @@ public struct FocusFlightCard: View {
     @State private var originAirport: DestinationAirport = DestinationAirport.find(code: "YYZ")
     @State private var destinationAirport: DestinationAirport = DestinationAirport.find(code: "HND")
     @State private var selectedSeat: FocusSeatClass = .code
+    
+    // Custom Mission / Seat
+    @State private var isCustomSeatSelected: Bool = false
+    @State private var customSeatCode: String = "7X"
+    @State private var customTaskName: String = "AUTH ENGINE"
+    @State private var customSeatIcon: String = "terminal"
     
     // User-Selected Flight Duration in Minutes
     @State private var selectedDurationMinutes: Int = 25
@@ -50,6 +57,7 @@ public struct FocusFlightCard: View {
         aircraft: AircraftType = .a350F,
         audioEngine: AudioEngine? = nil,
         onStart: ((FlightPreset, TimeInterval?) -> Void)? = nil,
+        onStartFlight: ((FlightPreset, TimeInterval?, String, String, String, String, String) -> Void)? = nil,
         onHold: (() -> Void)? = nil,
         onDock: (() -> Void)? = nil,
         onAbort: (() -> Void)? = nil,
@@ -64,6 +72,7 @@ public struct FocusFlightCard: View {
         self.aircraft = aircraft
         self.audioEngine = audioEngine
         self.onStart = onStart
+        self.onStartFlight = onStartFlight
         self.onHold = onHold
         self.onDock = onDock
         self.onAbort = onAbort
@@ -71,6 +80,38 @@ public struct FocusFlightCard: View {
         self.onOpenGarage = onOpenGarage
         self.onOpenSettings = onOpenSettings
         self.onOpenLogbook = onOpenLogbook
+    }
+    
+    // MARK: - Seat & Mission Helpers
+    
+    public var currentSeatCode: String {
+        if let session = activeSession {
+            return session.seatCode
+        }
+        return isCustomSeatSelected ? (customSeatCode.isEmpty ? "7X" : customSeatCode.uppercased()) : selectedSeat.rawValue
+    }
+
+    public var currentTaskTitle: String {
+        if let session = activeSession {
+            return session.taskTitle.uppercased()
+        }
+        if isCustomSeatSelected {
+            return customTaskName.isEmpty ? "CUSTOM" : customTaskName.uppercased()
+        }
+        switch selectedSeat {
+        case .deepWork: return "DEEP WORK"
+        case .study: return "STUDY"
+        case .research: return "RESEARCH"
+        case .read: return "READING"
+        case .code: return "CODING"
+        }
+    }
+
+    public var currentSeatIcon: String {
+        if let session = activeSession {
+            return session.seatIcon
+        }
+        return isCustomSeatSelected ? customSeatIcon : selectedSeat.iconSymbol
     }
     
     // MARK: - Telemetry Calculations
@@ -366,9 +407,9 @@ public struct FocusFlightCard: View {
                 }
             } label: {
                 HStack(spacing: 3.5) {
-                    Image(systemName: selectedSeat.iconSymbol)
+                    Image(systemName: currentSeatIcon)
                         .font(.system(size: 8, weight: .bold))
-                    Text("SEAT \(selectedSeat.seatCode)")
+                    Text("SEAT \(currentSeatCode) · \(currentTaskTitle)")
                         .font(.system(size: 8.5, weight: .black, design: .monospaced))
                 }
                 .foregroundStyle(activeDrawer == .seatPicker ? Color.white : KaruTheme.textSecondary)
@@ -406,7 +447,19 @@ public struct FocusFlightCard: View {
             
             if state == .idle {
                 Button {
-                    onStart?(.sprint25, TimeInterval(selectedDurationMinutes * 60))
+                    if let onStartFlight = onStartFlight {
+                        onStartFlight(
+                            .sprint25,
+                            TimeInterval(selectedDurationMinutes * 60),
+                            originAirport.code,
+                            destinationAirport.code,
+                            currentSeatCode,
+                            currentTaskTitle,
+                            currentSeatIcon
+                        )
+                    } else {
+                        onStart?(.sprint25, TimeInterval(selectedDurationMinutes * 60))
+                    }
                 } label: {
                     HStack(spacing: 3.5) {
                         Image(systemName: "play.fill")
@@ -634,10 +687,11 @@ public struct FocusFlightCard: View {
         ScrollView {
             VStack(spacing: 4) {
                 ForEach(FocusSeatClass.allCases) { seat in
-                    let isSelected = selectedSeat == seat
+                    let isSelected = !isCustomSeatSelected && selectedSeat == seat
                     
                     Button {
                         selectedSeat = seat
+                        isCustomSeatSelected = false
                         withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                             activeDrawer = nil
                         }
@@ -681,8 +735,105 @@ public struct FocusFlightCard: View {
                     }
                     .buttonStyle(.plain)
                 }
+
+                // Custom Mission & Seat Option
+                VStack(spacing: 5) {
+                    Button {
+                        isCustomSeatSelected = true
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                            activeDrawer = nil
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.white.opacity(0.12))
+                                    .frame(width: 22, height: 22)
+                                Image(systemName: customSeatIcon)
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(Color.white)
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 1) {
+                                HStack(spacing: 4) {
+                                    Text(customTaskName.isEmpty ? "CUSTOM MISSION" : customTaskName.uppercased())
+                                        .font(.system(size: 10.5, weight: .bold))
+                                        .foregroundStyle(Color.white)
+                                    Text("[Seat \(customSeatCode.isEmpty ? "7X" : customSeatCode.uppercased())]")
+                                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                        .foregroundStyle(Color.white.opacity(0.7))
+                                }
+                                Text("Custom Objective · User-Defined Seat Code")
+                                    .font(.system(size: 8))
+                                    .foregroundStyle(KaruTheme.textSecondary)
+                            }
+                            
+                            Spacer()
+                            
+                            if isCustomSeatSelected {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(Color(hex: 0xFF5C00))
+                            }
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(isCustomSeatSelected ? KaruTheme.surfaceElevated : Color.white.opacity(0.03))
+                        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+
+                    // Inline Custom Task & Seat Text Fields
+                    HStack(spacing: 6) {
+                        HStack(spacing: 3) {
+                            Text("SEAT:")
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .foregroundStyle(KaruTheme.textMuted)
+                            TextField("7X", text: $customSeatCode)
+                                .textFieldStyle(.plain)
+                                .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                                .foregroundStyle(Color.white)
+                                .frame(width: 28)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(KaruTheme.recessedTray)
+                        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+
+                        HStack(spacing: 3) {
+                            Text("TASK:")
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .foregroundStyle(KaruTheme.textMuted)
+                            TextField("e.g. AUTH API", text: $customTaskName)
+                                .textFieldStyle(.plain)
+                                .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                                .foregroundStyle(Color.white)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(KaruTheme.recessedTray)
+                        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+
+                        Button {
+                            isCustomSeatSelected = true
+                            withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                                activeDrawer = nil
+                            }
+                        } label: {
+                            Text("SET")
+                                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                                .foregroundStyle(Color.black)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3.5)
+                                .background(Color.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 4)
+                }
             }
         }
-        .frame(maxHeight: 135)
+        .frame(maxHeight: 145)
     }
 }
