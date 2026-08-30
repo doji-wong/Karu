@@ -11,14 +11,19 @@ struct KaruApp: App {
         }
         .commands {
             CommandMenu("Karu") {
-                Button("Toggle Floating HUD") {
+                Button("Toggle Floating Flight Card") {
                     appDelegate.toggleFloatingHUD()
                 }
                 .keyboardShortcut("f", modifiers: [.command, .shift])
 
                 Divider()
 
-                Button("Open Garage") {
+                Button("Pilot's Logbook") {
+                    appDelegate.openLogbookWindow()
+                }
+                .keyboardShortcut("l", modifiers: .command)
+
+                Button("Aircraft Hangar") {
                     appDelegate.openGarageWindow()
                 }
                 .keyboardShortcut("g", modifiers: [.command, .shift])

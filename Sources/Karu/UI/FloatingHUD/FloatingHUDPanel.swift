@@ -2,13 +2,13 @@ import AppKit
 import SwiftUI
 import KaruCore
 
-/// Floating HUD Window Controller for Karu macOS.
+/// Floating HUD Window Controller for Karu Focus Flight.
 /// Anchors a draggable high-contrast flight card HUD on top of any workspace with dynamic hover expansion.
 public final class FloatingHUDPanel: NSPanel {
     
-    public init(engine: TransitEngine, scratchpadStore: ScratchpadStore) {
+    public init(engine: TransitEngine) {
         super.init(
-            contentRect: NSRect(x: 100, y: 100, width: 372, height: 156),
+            contentRect: NSRect(x: 100, y: 100, width: 372, height: 380),
             styleMask: [.nonactivatingPanel, .borderless, .hudWindow],
             backing: .buffered,
             defer: false
@@ -22,7 +22,6 @@ public final class FloatingHUDPanel: NSPanel {
 
         let hudView = FloatingHUDView(
             engine: engine,
-            scratchpadStore: scratchpadStore,
             onClose: { [weak self] in
                 self?.orderOut(nil)
             }

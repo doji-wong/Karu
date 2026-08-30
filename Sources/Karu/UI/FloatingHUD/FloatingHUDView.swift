@@ -2,21 +2,18 @@ import SwiftUI
 import KaruCore
 
 /// Floating Avionics Flight HUD View for macOS.
-/// Embeds the official Visual Identity flight card directly into a draggable floating overlay with dynamic hover expansion.
+/// Embeds the official Direction A flight card directly into a draggable floating overlay with dynamic hover expansion.
 public struct FloatingHUDView: View {
     @Bindable public var engine: TransitEngine
-    @Bindable public var scratchpadStore: ScratchpadStore
     public var onClose: (() -> Void)?
 
     @State private var isHovering: Bool = false
 
     public init(
         engine: TransitEngine,
-        scratchpadStore: ScratchpadStore,
         onClose: (() -> Void)? = nil
     ) {
         self.engine = engine
-        self.scratchpadStore = scratchpadStore
         self.onClose = onClose
     }
 
@@ -27,13 +24,12 @@ public struct FloatingHUDView: View {
                     state: engine.state,
                     velocity: engine.currentVelocity,
                     activeSession: engine.activeSession,
-                    vehicle: engine.activeVehicle,
-                    scratchpadStore: scratchpadStore,
+                    aircraft: engine.activeAircraft,
                     onStart: { preset, customDuration in
                         engine.startTrip(preset: preset, customDuration: customDuration)
                     },
                     onHold: {
-                        engine.togglePitStop()
+                        engine.toggleGateHold()
                     },
                     onDock: {
                         engine.completeTrip()

@@ -4,29 +4,29 @@ import KaruCore
 /// Stealth Pure Monochrome FocusFlight Popover Dashboard for macOS Menu Bar.
 public struct DiagnosticPopoverView: View {
     @Bindable public var engine: TransitEngine
-    @Bindable public var scratchpadStore: ScratchpadStore
     public var audioEngine: AudioEngine
     public var storage: LocalStorageManager
     public var onToggleFloatingHUD: (() -> Void)?
     public var onOpenGarage: (() -> Void)?
     public var onOpenSettings: (() -> Void)?
+    public var onOpenLogbook: (() -> Void)?
 
     public init(
         engine: TransitEngine,
-        scratchpadStore: ScratchpadStore,
         audioEngine: AudioEngine,
         storage: LocalStorageManager,
         onToggleFloatingHUD: (() -> Void)? = nil,
         onOpenGarage: (() -> Void)? = nil,
-        onOpenSettings: (() -> Void)? = nil
+        onOpenSettings: (() -> Void)? = nil,
+        onOpenLogbook: (() -> Void)? = nil
     ) {
         self.engine = engine
-        self.scratchpadStore = scratchpadStore
         self.audioEngine = audioEngine
         self.storage = storage
         self.onToggleFloatingHUD = onToggleFloatingHUD
         self.onOpenGarage = onOpenGarage
         self.onOpenSettings = onOpenSettings
+        self.onOpenLogbook = onOpenLogbook
     }
 
     public var body: some View {
@@ -35,15 +35,14 @@ public struct DiagnosticPopoverView: View {
                 state: engine.state,
                 velocity: engine.currentVelocity,
                 activeSession: engine.activeSession,
-                vehicle: engine.activeVehicle,
+                aircraft: engine.activeAircraft,
                 audioEngine: audioEngine,
-                scratchpadStore: scratchpadStore,
                 onStart: { preset, customDuration in
                     engine.startTrip(preset: preset, customDuration: customDuration)
                     audioEngine.start()
                 },
                 onHold: {
-                    engine.togglePitStop()
+                    engine.toggleGateHold()
                 },
                 onDock: {
                     engine.completeTrip()
@@ -59,6 +58,9 @@ public struct DiagnosticPopoverView: View {
                 },
                 onOpenSettings: {
                     onOpenSettings?()
+                },
+                onOpenLogbook: {
+                    onOpenLogbook?()
                 }
             )
             Spacer(minLength: 0)

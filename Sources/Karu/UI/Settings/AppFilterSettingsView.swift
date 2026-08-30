@@ -1,14 +1,28 @@
 import SwiftUI
+import AppKit
 import KaruCore
 
-/// Preferences view for managing Focus presets, custom whitelist/blacklist rules, and strict mode.
+/// Running application model for live radar detection.
+struct RunningAppItem: Identifiable {
+    let id: String // bundleIdentifier
+    let localizedName: String
+    let icon: NSImage?
+    var category: AppFocusCategory?
+}
+
+/// Preferences view for managing Focus presets, 1-Click Running App Radar, and custom rules.
 public struct AppFilterSettingsView: View {
     public var classifier: AppClassifier
     public var storage: LocalStorageManager
 
+    @State private var selectedTab: Int = 0 // 0: Radar, 1: Rules & Presets
     @State private var selectedPreset: FocusPreset
     @State private var isStrictMode: Bool
     @State private var customRules: [AppFilterRule] = []
+    
+    // Live Running Apps
+    @State private var runningApps: [RunningAppItem] = []
+    @State private var radarSearchQuery: String = ""
     
     // Add new rule form
     @State private var newBundleId: String = ""
@@ -23,28 +37,182 @@ public struct AppFilterSettingsView: View {
     }
 
     public var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 14) {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("TRAFFIC & DISTRACTION RULES")
+                    Text("FLIGHT TELEMETRY & APP RADAR")
                         .font(KaruTheme.captionMono)
-                        .foregroundStyle(KaruTheme.navCyan)
+                        .foregroundStyle(Color(hex: 0xFF5C00))
                     Text("App Classification Rules")
                         .font(KaruTheme.headerTitle)
                         .foregroundStyle(KaruTheme.textPrimary)
                 }
                 Spacer()
-                Image(systemName: "shield.lefthalf.filled")
-                    .font(.title2)
-                    .foregroundStyle(KaruTheme.textMuted)
+                
+                Picker("", selection: $selectedTab) {
+                    Text("Radar (Running Apps)").tag(0)
+                    Text("Rules & Presets").tag(1)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 260)
             }
 
             Divider().background(KaruTheme.cardBorder)
 
+            if selectedTab == 0 {
+                runningAppRadarView
+            } else {
+                rulesAndPresetsView
+            }
+        }
+        .padding(18)
+        .frame(width: 560, height: 480)
+        .background(KaruTheme.background)
+        .onAppear {
+            self.customRules = storage.loadCustomRules()
+            refreshRunningApps()
+        }
+    }
+
+    // MARK: - 1-Click Running App Radar View
+
+    private var filteredRunningApps: [RunningAppItem] {
+        if radarSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return runningApps
+        }
+        let query = radarSearchQuery.lowercased()
+        return runningApps.filter {
+            $0.localizedName.lowercased().contains(query) ||
+            $0.id.lowercased().contains(query)
+        }
+    }
+
+    @ViewBuilder
+    private var runningAppRadarView: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 10))
+                        .foregroundStyle(KaruTheme.textMuted)
+                    TextField("Filter open applications...", text: $radarSearchQuery)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.white)
+                }
+                .padding(6)
+                .background(KaruTheme.surfaceElevated)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+
+                Spacer()
+
+                Button {
+                    refreshRunningApps()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 10))
+                        Text("Rescan")
+                            .font(KaruTheme.captionMono)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(KaruTheme.surfaceElevated)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+                .buttonStyle(.plain)
+            }
+
+            Text("1-Click classify currently active macOS applications into Focus Workspaces or Distraction Hazards:")
+                .font(.system(size: 11))
+                .foregroundStyle(KaruTheme.textMuted)
+
+            ScrollView {
+                VStack(spacing: 6) {
+                    ForEach(filteredRunningApps) { app in
+                        HStack(spacing: 10) {
+                            if let icon = app.icon {
+                                Image(nsImage: icon)
+                                    .resizable()
+                                    .frame(width: 24, height: 24)
+                            } else {
+                                Image(systemName: "app.fill")
+                                    .frame(width: 24, height: 24)
+                                    .foregroundStyle(KaruTheme.textMuted)
+                            }
+
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(app.localizedName)
+                                    .font(KaruTheme.subheadline)
+                                    .foregroundStyle(Color.white)
+                                Text(app.id)
+                                    .font(KaruTheme.captionMono)
+                                    .foregroundStyle(KaruTheme.textMuted)
+                            }
+
+                            Spacer()
+
+                            // Quick Classification Segmented Controls
+                            HStack(spacing: 4) {
+                                Button {
+                                    setAppCategory(bundleId: app.id, name: app.localizedName, category: .focusWorkspace)
+                                } label: {
+                                    Text("Focus")
+                                        .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 3)
+                                        .background(app.category == .focusWorkspace ? Color(hex: 0x10B981) : Color.white.opacity(0.08))
+                                        .foregroundStyle(app.category == .focusWorkspace ? Color.black : Color.white.opacity(0.8))
+                                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                                }
+                                .buttonStyle(.plain)
+
+                                Button {
+                                    setAppCategory(bundleId: app.id, name: app.localizedName, category: .distractionHazard)
+                                } label: {
+                                    Text("Hazard")
+                                        .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 3)
+                                        .background(app.category == .distractionHazard ? Color(hex: 0xEF4444) : Color.white.opacity(0.08))
+                                        .foregroundStyle(app.category == .distractionHazard ? Color.white : Color.white.opacity(0.8))
+                                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                                }
+                                .buttonStyle(.plain)
+
+                                Button {
+                                    setAppCategory(bundleId: app.id, name: app.localizedName, category: .neutralUtility)
+                                } label: {
+                                    Text("Neutral")
+                                        .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 3)
+                                        .background(app.category == .neutralUtility ? Color(hex: 0x3B82F6) : Color.white.opacity(0.08))
+                                        .foregroundStyle(app.category == .neutralUtility ? Color.white : Color.white.opacity(0.8))
+                                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(8)
+                        .background(KaruTheme.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                }
+            }
+            .frame(maxHeight: 330)
+        }
+    }
+
+    // MARK: - Rules & Presets View
+
+    @ViewBuilder
+    private var rulesAndPresetsView: some View {
+        VStack(spacing: 12) {
             // Preset Selector
             VStack(alignment: .leading, spacing: 6) {
-                Text("WORKFLOW PRESET")
+                Text("PILOT WORKFLOW PRESET")
                     .font(KaruTheme.captionMono)
                     .foregroundStyle(KaruTheme.textSecondary)
 
@@ -56,6 +224,7 @@ public struct AppFilterSettingsView: View {
                 .pickerStyle(.segmented)
                 .onChange(of: selectedPreset) { _, newPreset in
                     classifier.setPreset(newPreset)
+                    refreshRunningApps()
                 }
             }
 
@@ -65,7 +234,7 @@ public struct AppFilterSettingsView: View {
                     Text("Strict Distraction Mode")
                         .font(KaruTheme.subheadline)
                         .foregroundStyle(KaruTheme.textPrimary)
-                    Text("Treat all unlisted applications as distraction hazards (0 km/h stall)")
+                    Text("Treat all unlisted applications as turbulence hazards (0 kts stall)")
                         .font(KaruTheme.captionMono)
                         .foregroundStyle(KaruTheme.textMuted)
                 }
@@ -77,8 +246,8 @@ public struct AppFilterSettingsView: View {
             Divider().background(KaruTheme.cardBorder)
 
             // Add Custom Rule Form
-            VStack(alignment: .leading, spacing: 8) {
-                Text("ADD CUSTOM APP RULE")
+            VStack(alignment: .leading, spacing: 6) {
+                Text("ADD CUSTOM BUNDLE RULE")
                     .font(KaruTheme.captionMono)
                     .foregroundStyle(KaruTheme.textSecondary)
 
@@ -104,13 +273,13 @@ public struct AppFilterSettingsView: View {
             }
 
             // Active Rules List
-            VStack(alignment: .leading, spacing: 6) {
-                Text("ACTIVE APP RULES")
+            VStack(alignment: .leading, spacing: 4) {
+                Text("CONFIGURED RULES (\(classifier.allActiveRules().count))")
                     .font(KaruTheme.captionMono)
                     .foregroundStyle(KaruTheme.textSecondary)
 
                 ScrollView {
-                    VStack(spacing: 6) {
+                    VStack(spacing: 4) {
                         ForEach(classifier.allActiveRules()) { rule in
                             HStack {
                                 Circle()
@@ -142,21 +311,47 @@ public struct AppFilterSettingsView: View {
                                     .buttonStyle(.plain)
                                 }
                             }
-                            .padding(8)
+                            .padding(6)
                             .background(KaruTheme.surface)
                             .clipShape(RoundedRectangle(cornerRadius: 6))
                         }
                     }
                 }
-                .frame(maxHeight: 180)
+                .frame(maxHeight: 140)
             }
         }
-        .padding(20)
-        .frame(width: 520)
-        .background(KaruTheme.background)
-        .onAppear {
-            self.customRules = storage.loadCustomRules()
-        }
+    }
+
+    // MARK: - Actions & Helpers
+
+    private func refreshRunningApps() {
+        let running = NSWorkspace.shared.runningApplications
+        let currentRules = classifier.allActiveRules()
+        let ruleMap = Dictionary(uniqueKeysWithValues: currentRules.map { ($0.bundleIdentifier, $0.category) })
+
+        self.runningApps = running
+            .filter { $0.activationPolicy == .regular && $0.bundleIdentifier != Bundle.main.bundleIdentifier }
+            .compactMap { app -> RunningAppItem? in
+                guard let bundleId = app.bundleIdentifier, let name = app.localizedName else { return nil }
+                let icon = app.icon
+                let category = ruleMap[bundleId]
+                return RunningAppItem(id: bundleId, localizedName: name, icon: icon, category: category)
+            }
+            .sorted { $0.localizedName.localizedCaseInsensitiveCompare($1.localizedName) == .orderedAscending }
+    }
+
+    private func setAppCategory(bundleId: String, name: String, category: AppFocusCategory) {
+        let rule = AppFilterRule(
+            bundleIdentifier: bundleId,
+            appName: name,
+            category: category,
+            isCustomOverride: true
+        )
+        classifier.setCustomRule(rule)
+        customRules.removeAll(where: { $0.bundleIdentifier == bundleId })
+        customRules.append(rule)
+        try? storage.saveCustomRules(customRules)
+        refreshRunningApps()
     }
 
     private func addCustomRule() {
@@ -172,19 +367,21 @@ public struct AppFilterSettingsView: View {
 
         newBundleId = ""
         newAppName = ""
+        refreshRunningApps()
     }
 
     private func removeRule(_ bundleId: String) {
         classifier.removeCustomRule(bundleIdentifier: bundleId)
         customRules.removeAll(where: { $0.bundleIdentifier == bundleId })
         try? storage.saveCustomRules(customRules)
+        refreshRunningApps()
     }
 
     private func categoryColor(_ category: AppFocusCategory) -> Color {
         switch category {
-        case .focusWorkspace: return KaruTheme.cruiseEmerald
-        case .distractionHazard: return KaruTheme.hazardAmber
-        case .neutralUtility: return KaruTheme.navCyan
+        case .focusWorkspace: return Color(hex: 0x10B981)
+        case .distractionHazard: return Color(hex: 0xEF4444)
+        case .neutralUtility: return Color(hex: 0x3B82F6)
         }
     }
 }

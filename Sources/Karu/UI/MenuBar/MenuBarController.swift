@@ -79,22 +79,20 @@ public final class MenuBarController: NSObject {
     private var menuBarPanel: MenuBarPanel?
     
     private let engine: TransitEngine
-    private let scratchpadStore: ScratchpadStore
     private let audioEngine: AudioEngine
     private let storage: LocalStorageManager
     
     public var onToggleFloatingHUD: (() -> Void)?
     public var onOpenGarage: (() -> Void)?
     public var onOpenSettings: (() -> Void)?
+    public var onOpenLogbook: (() -> Void)?
 
     public init(
         engine: TransitEngine,
-        scratchpadStore: ScratchpadStore,
         audioEngine: AudioEngine,
         storage: LocalStorageManager
     ) {
         self.engine = engine
-        self.scratchpadStore = scratchpadStore
         self.audioEngine = audioEngine
         self.storage = storage
         super.init()
@@ -119,7 +117,6 @@ public final class MenuBarController: NSObject {
     private func setupPanel() {
         let rootView = DiagnosticPopoverView(
             engine: engine,
-            scratchpadStore: scratchpadStore,
             audioEngine: audioEngine,
             storage: storage,
             onToggleFloatingHUD: { [weak self] in 
@@ -133,6 +130,10 @@ public final class MenuBarController: NSObject {
             onOpenSettings: { [weak self] in 
                 self?.menuBarPanel?.hide()
                 self?.onOpenSettings?() 
+            },
+            onOpenLogbook: { [weak self] in
+                self?.menuBarPanel?.hide()
+                self?.onOpenLogbook?()
             }
         )
 

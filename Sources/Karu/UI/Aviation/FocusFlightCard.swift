@@ -1,25 +1,33 @@
 import SwiftUI
 import KaruCore
 
+/// Drawer state for inline accordion expansion in FocusFlightCard.
+public enum FlightCardDrawer: Equatable {
+    case originPicker
+    case destinationPicker
+    case seatPicker
+}
+
 /// Ultra-Sleek Avionics Telemetry Flight Card — Direction A Monochrome Edition.
-/// High-contrast luxury black & white flight deck interface with dynamic hover expansion:
+/// High-contrast luxury black & white flight deck interface with dynamic inline accordion expansion:
 /// - Idle Height: 122px (Compact 16px equal margins on all sides)
-/// - Hover/Active Height: 156px (Spring expands bottom border to reveal actions without crowding)
+/// - Hover/Active Height: 156px (Reveals action controls)
+/// - Drawer Open Height: 348px (Inline airport and seat class drawers without window clipping)
 /// - Pure Jet Black base (#08080A), Obsidian containers (#151518), and Crisp White highlights (#FFFFFF)
 public struct FocusFlightCard: View {
     public var state: TransitState
     public var velocity: Double
     public var activeSession: TripSession?
-    public var vehicle: VehicleType
+    public var aircraft: AircraftType
     public var audioEngine: AudioEngine?
-    public var scratchpadStore: ScratchpadStore?
-    public var onStart: ((TripPreset, TimeInterval?) -> Void)?
+    public var onStart: ((FlightPreset, TimeInterval?) -> Void)?
     public var onHold: (() -> Void)?
     public var onDock: (() -> Void)?
     public var onAbort: (() -> Void)?
     public var onToggleFloatingHUD: (() -> Void)?
     public var onOpenGarage: (() -> Void)?
     public var onOpenSettings: (() -> Void)?
+    public var onOpenLogbook: (() -> Void)?
     
     // Flight Route & Destination (Default YYZ ➔ HND)
     @State private var originAirport: DestinationAirport = DestinationAirport.find(code: "YYZ")
@@ -31,31 +39,30 @@ public struct FocusFlightCard: View {
     @State private var isHovering: Bool = false
     @State private var showDestinationTime: Bool = true
     
-    // Interactive Sheets / Modals
-    @State private var isShowingDestinationPicker: Bool = false
-    @State private var isShowingSeatPicker: Bool = false
+    // Inline Accordion Drawer (Replacing clipping popovers)
+    @State private var activeDrawer: FlightCardDrawer? = nil
+    @State private var airportSearchQuery: String = ""
     
     public init(
         state: TransitState,
         velocity: Double,
         activeSession: TripSession? = nil,
-        vehicle: VehicleType = .classicSarao,
+        aircraft: AircraftType = .a350F,
         audioEngine: AudioEngine? = nil,
-        scratchpadStore: ScratchpadStore? = nil,
-        onStart: ((TripPreset, TimeInterval?) -> Void)? = nil,
+        onStart: ((FlightPreset, TimeInterval?) -> Void)? = nil,
         onHold: (() -> Void)? = nil,
         onDock: (() -> Void)? = nil,
         onAbort: (() -> Void)? = nil,
         onToggleFloatingHUD: (() -> Void)? = nil,
         onOpenGarage: (() -> Void)? = nil,
-        onOpenSettings: (() -> Void)? = nil
+        onOpenSettings: (() -> Void)? = nil,
+        onOpenLogbook: (() -> Void)? = nil
     ) {
         self.state = state
         self.velocity = velocity
         self.activeSession = activeSession
-        self.vehicle = vehicle
+        self.aircraft = aircraft
         self.audioEngine = audioEngine
-        self.scratchpadStore = scratchpadStore
         self.onStart = onStart
         self.onHold = onHold
         self.onDock = onDock
@@ -63,6 +70,7 @@ public struct FocusFlightCard: View {
         self.onToggleFloatingHUD = onToggleFloatingHUD
         self.onOpenGarage = onOpenGarage
         self.onOpenSettings = onOpenSettings
+        self.onOpenLogbook = onOpenLogbook
     }
     
     // MARK: - Telemetry Calculations
@@ -75,7 +83,17 @@ public struct FocusFlightCard: View {
     }
     
     private var isExpanded: Bool {
-        isHovering || state != .idle
+        isHovering || state != .idle || activeDrawer != nil
+    }
+    
+    private var currentCardHeight: CGFloat {
+        if activeDrawer != nil {
+            return 348
+        } else if isExpanded {
+            return 156
+        } else {
+            return 122
+        }
     }
     
     private var remainingTimeNegativeFormatted: String {
@@ -148,13 +166,25 @@ public struct FocusFlightCard: View {
         case .idle:
             return "READY IN \(selectedDurationMinutes)M"
         case .cruising:
-            return "DINNER IN 2:34H"
+            return "CRUISING FL380"
         case .trafficStalled:
-            return "TURBULENCE"
+            return "IN TURBULENCE"
         case .pitStop:
             return "GATE HOLD"
         case .completed:
             return "TOUCHDOWN"
+        }
+    }
+    
+    private var filteredAirports: [DestinationAirport] {
+        if airportSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return DestinationAirport.worldwideDestinations
+        }
+        let query = airportSearchQuery.lowercased()
+        return DestinationAirport.worldwideDestinations.filter {
+            $0.code.lowercased().contains(query) ||
+            $0.cityName.lowercased().contains(query) ||
+            $0.countryName.lowercased().contains(query)
         }
     }
     
@@ -183,25 +213,30 @@ public struct FocusFlightCard: View {
                         .frame(height: 24)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
+                
+                // 3. Inline Accordion Drawer (Replacing popovers)
+                if let drawer = activeDrawer {
+                    Divider()
+                        .background(Color.white.opacity(0.08))
+                        .padding(.vertical, 2)
+                    
+                    inlineDrawerContent(drawer)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
             }
             .padding(16)
         }
-        .frame(width: 372, height: isExpanded ? 156 : 122)
+        .frame(width: 372, height: currentCardHeight)
         .clipShape(
             RoundedRectangle(cornerRadius: KaruTheme.radiusCard, style: .continuous),
             style: FillStyle(antialiased: true)
         )
-        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: isExpanded)
+        .animation(.spring(response: 0.32, dampingFraction: 0.82), value: isExpanded)
+        .animation(.spring(response: 0.32, dampingFraction: 0.82), value: activeDrawer)
         .onHover { hovering in
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                 isHovering = hovering
             }
-        }
-        .popover(isPresented: $isShowingDestinationPicker) {
-            destinationPickerView
-        }
-        .popover(isPresented: $isShowingSeatPicker) {
-            seatPickerView
         }
     }
     
@@ -210,23 +245,26 @@ public struct FocusFlightCard: View {
     @ViewBuilder
     private var topRouteRow: some View {
         HStack(alignment: .center, spacing: 8) {
-            // ── Left: Symmetrical Aligned Monochrome Route Display ──
-            Button {
-                isShowingDestinationPicker = true
-            } label: {
-                HStack(alignment: .center, spacing: 7) {
-                    // Origin Column: Code -> City -> Time
+            // ── Left: Symmetrical Aligned Monochrome Route Display with Dual Selectors ──
+            HStack(alignment: .center, spacing: 7) {
+                // Departure / Origin Column
+                Button {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                        airportSearchQuery = ""
+                        activeDrawer = (activeDrawer == .originPicker ? nil : .originPicker)
+                    }
+                } label: {
                     VStack(alignment: .leading, spacing: 1.5) {
                         DotMatrixTextView(
                             text: originAirport.code,
                             dotSize: 2.1,
                             dotSpacing: 1.0,
-                            activeColor: .white
+                            activeColor: activeDrawer == .originPicker ? Color(hex: 0xFF5C00) : .white
                         )
                         
                         Text(originAirport.cityName)
                             .font(KaruTheme.cityTitle)
-                            .foregroundStyle(Color.white)
+                            .foregroundStyle(activeDrawer == .originPicker ? Color(hex: 0xFF5C00) : Color.white)
                             .lineLimit(1)
                         
                         Text(departureTimeString)
@@ -234,27 +272,40 @@ public struct FocusFlightCard: View {
                             .foregroundStyle(KaruTheme.textMuted)
                             .lineLimit(1)
                     }
-                    
-                    // Route Arrow perfectly vertically centered in Crisp White
-                    DotMatrixArrowView(
-                        color: .white,
-                        dotSize: 2.1,
-                        dotSpacing: 1.0
-                    )
-                    .padding(.horizontal, 1)
-                    
-                    // Destination Column: Code -> City -> Time
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(activeDrawer == .originPicker ? Color.white.opacity(0.08) : Color.clear)
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .help("Select Departure Airport")
+                
+                // Route Arrow centered in Crisp White
+                DotMatrixArrowView(
+                    color: .white,
+                    dotSize: 2.1,
+                    dotSpacing: 1.0
+                )
+                .padding(.horizontal, 1)
+                
+                // Arrival / Destination Column
+                Button {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                        airportSearchQuery = ""
+                        activeDrawer = (activeDrawer == .destinationPicker ? nil : .destinationPicker)
+                    }
+                } label: {
                     VStack(alignment: .leading, spacing: 1.5) {
                         DotMatrixTextView(
                             text: destinationAirport.code,
                             dotSize: 2.1,
                             dotSpacing: 1.0,
-                            activeColor: .white
+                            activeColor: activeDrawer == .destinationPicker ? Color(hex: 0xFF5C00) : .white
                         )
                         
                         Text(destinationAirport.cityName)
                             .font(KaruTheme.cityTitle)
-                            .foregroundStyle(Color.white)
+                            .foregroundStyle(activeDrawer == .destinationPicker ? Color(hex: 0xFF5C00) : Color.white)
                             .lineLimit(1)
                         
                         Text(arrivalTimeString)
@@ -262,10 +313,14 @@ public struct FocusFlightCard: View {
                             .foregroundStyle(KaruTheme.textMuted)
                             .lineLimit(1)
                     }
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(activeDrawer == .destinationPicker ? Color.white.opacity(0.08) : Color.clear)
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                 }
+                .buttonStyle(.plain)
+                .help("Select Destination Airport")
             }
-            .buttonStyle(.plain)
-            .help("Click to change flight route & destinations")
             
             Spacer(minLength: 8)
             
@@ -304,8 +359,11 @@ public struct FocusFlightCard: View {
     @ViewBuilder
     private var quickActionBar: some View {
         HStack(spacing: 7) {
+            // Seat Selector Trigger
             Button {
-                isShowingSeatPicker = true
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                    activeDrawer = (activeDrawer == .seatPicker ? nil : .seatPicker)
+                }
             } label: {
                 HStack(spacing: 3.5) {
                     Image(systemName: selectedSeat.iconSymbol)
@@ -313,12 +371,12 @@ public struct FocusFlightCard: View {
                     Text("SEAT \(selectedSeat.seatCode)")
                         .font(.system(size: 8.5, weight: .black, design: .monospaced))
                 }
-                .foregroundStyle(KaruTheme.textSecondary)
+                .foregroundStyle(activeDrawer == .seatPicker ? Color.white : KaruTheme.textSecondary)
                 .padding(.horizontal, 7)
                 .padding(.vertical, 3.5)
                 .background(
                     Capsule()
-                        .fill(KaruTheme.recessedTray)
+                        .fill(activeDrawer == .seatPicker ? KaruTheme.surfaceElevated : KaruTheme.recessedTray)
                         .overlay(
                             Capsule().strokeBorder(Color.white.opacity(0.05), lineWidth: 0.5, antialiased: true)
                         )
@@ -326,12 +384,29 @@ public struct FocusFlightCard: View {
                 .clipShape(Capsule(), style: FillStyle(antialiased: true))
             }
             .buttonStyle(.plain)
+            .help("Choose Task / Seat Class")
+            
+            // Audio Mute Quick Toggle
+            if let audio = audioEngine {
+                Button {
+                    audio.toggleMute()
+                } label: {
+                    Image(systemName: audio.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                        .font(.system(size: 8.5, weight: .bold))
+                        .foregroundStyle(audio.isMuted ? KaruTheme.textMuted : Color.white)
+                        .padding(3.5)
+                        .background(Circle().fill(KaruTheme.recessedTray))
+                        .clipShape(Circle(), style: FillStyle(antialiased: true))
+                }
+                .buttonStyle(.plain)
+                .help(audio.isMuted ? "Unmute Cabin Ambient Audio" : "Mute Cabin Ambient Audio")
+            }
             
             Spacer()
             
             if state == .idle {
                 Button {
-                    onStart?(.cityDash25, TimeInterval(selectedDurationMinutes * 60))
+                    onStart?(.sprint25, TimeInterval(selectedDurationMinutes * 60))
                 } label: {
                     HStack(spacing: 3.5) {
                         Image(systemName: "play.fill")
@@ -363,7 +438,7 @@ public struct FocusFlightCard: View {
                             .clipShape(Circle(), style: FillStyle(antialiased: true))
                     }
                     .buttonStyle(.plain)
-                    .help(state == .pitStop ? "Resume Cruise" : "Hold Flight")
+                    .help(state == .pitStop ? "Resume Cruise" : "Gate Hold")
                     
                     Button {
                         onDock?()
@@ -395,6 +470,17 @@ public struct FocusFlightCard: View {
             
             HStack(spacing: 2.5) {
                 Button {
+                    onOpenLogbook?()
+                } label: {
+                    Image(systemName: "book.pages")
+                        .font(.system(size: 8.5))
+                        .foregroundStyle(KaruTheme.textMuted)
+                        .padding(3)
+                }
+                .buttonStyle(.plain)
+                .help("Pilot's Flight Logbook")
+
+                Button {
                     onToggleFloatingHUD?()
                 } label: {
                     Image(systemName: "pip")
@@ -403,7 +489,7 @@ public struct FocusFlightCard: View {
                         .padding(3)
                 }
                 .buttonStyle(.plain)
-                .help("Toggle Floating HUD")
+                .help("Toggle Floating Flight Card")
                 
                 Button {
                     onOpenSettings?()
@@ -420,146 +506,183 @@ public struct FocusFlightCard: View {
         .padding(.top, 2)
     }
     
-    // MARK: - Destination Selection Popover
+    // MARK: - Inline Accordion Drawer View
     
-    private var destinationPickerView: some View {
-        VStack(alignment: .leading, spacing: 10) {
+    @ViewBuilder
+    private func inlineDrawerContent(_ drawer: FlightCardDrawer) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Drawer Header
             HStack {
-                Text("Select Route & Destination")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Color.white)
+                Text(drawerHeaderTitle(for: drawer))
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(Color.white.opacity(0.9))
+                
                 Spacer()
+                
                 Button {
-                    isShowingDestinationPicker = false
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                        activeDrawer = nil
+                    }
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 13))
+                        .font(.system(size: 12))
                         .foregroundStyle(KaruTheme.textMuted)
                 }
                 .buttonStyle(.plain)
             }
             
-            Divider().background(Color.white.opacity(0.1))
+            switch drawer {
+            case .originPicker:
+                airportListView(isOrigin: true)
+            case .destinationPicker:
+                airportListView(isOrigin: false)
+            case .seatPicker:
+                seatClassListView
+            }
+        }
+        .padding(10)
+        .background(KaruTheme.recessedTray)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+    
+    private func drawerHeaderTitle(for drawer: FlightCardDrawer) -> String {
+        switch drawer {
+        case .originPicker: return "SELECT DEPARTURE AIRPORT (ORIGIN)"
+        case .destinationPicker: return "SELECT ARRIVAL AIRPORT (DESTINATION)"
+        case .seatPicker: return "SELECT CABIN CLASS & TASK MODE"
+        }
+    }
+    
+    // MARK: - Airport List Drawer
+    
+    @ViewBuilder
+    private func airportListView(isOrigin: Bool) -> some View {
+        VStack(spacing: 6) {
+            // Search field
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 9))
+                    .foregroundStyle(KaruTheme.textMuted)
+                
+                TextField("Search airport code or city...", text: $airportSearchQuery)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 10))
+                    .foregroundStyle(Color.white)
+            }
+            .padding(6)
+            .background(Color.white.opacity(0.06))
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             
             ScrollView {
-                VStack(spacing: 5) {
-                    ForEach(DestinationAirport.worldwideDestinations) { airport in
+                VStack(spacing: 4) {
+                    ForEach(filteredAirports) { airport in
+                        let isSelected = isOrigin ? (originAirport.code == airport.code) : (destinationAirport.code == airport.code)
+                        
                         Button {
-                            destinationAirport = airport
-                            isShowingDestinationPicker = false
+                            if isOrigin {
+                                originAirport = airport
+                            } else {
+                                destinationAirport = airport
+                            }
+                            withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                                activeDrawer = nil
+                            }
                         } label: {
                             HStack(spacing: 8) {
                                 Text(airport.countryFlag)
-                                    .font(.system(size: 16))
+                                    .font(.system(size: 14))
                                 
                                 VStack(alignment: .leading, spacing: 1) {
-                                    HStack {
+                                    HStack(spacing: 4) {
                                         Text(airport.cityName)
-                                            .font(.system(size: 11, weight: .bold))
+                                            .font(.system(size: 10.5, weight: .bold))
                                             .foregroundStyle(Color.white)
                                         Text("(\(airport.code))")
-                                            .font(.system(size: 9.5, weight: .bold, design: .monospaced))
-                                            .foregroundStyle(Color.white)
+                                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                            .foregroundStyle(Color.white.opacity(0.7))
                                     }
                                     Text("\(airport.countryName) · \(airport.timeZoneCode)")
-                                        .font(.system(size: 8.5))
+                                        .font(.system(size: 8))
                                         .foregroundStyle(KaruTheme.textSecondary)
                                 }
                                 
                                 Spacer()
                                 
-                                if destinationAirport.code == airport.code {
+                                if isSelected {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(Color.white)
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(Color(hex: 0xFF5C00))
                                 }
                             }
                             .padding(.horizontal, 8)
-                            .padding(.vertical, 6)
-                            .background(destinationAirport.code == airport.code ? KaruTheme.surfaceElevated : KaruTheme.recessedTray)
-                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous), style: FillStyle(antialiased: true))
+                            .padding(.vertical, 5)
+                            .background(isSelected ? KaruTheme.surfaceElevated : Color.white.opacity(0.03))
+                            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
                         }
                         .buttonStyle(.plain)
                     }
                 }
             }
-            .frame(maxHeight: 220)
+            .frame(maxHeight: 120)
         }
-        .padding(12)
-        .frame(width: 280)
-        .background(KaruTheme.surface)
     }
     
-    // MARK: - Seat Selection Popover
+    // MARK: - Seat Class Drawer
     
-    private var seatPickerView: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Select Focus Seat & Cabin")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Color.white)
-                Spacer()
-                Button {
-                    isShowingSeatPicker = false
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 13))
-                        .foregroundStyle(KaruTheme.textMuted)
-                }
-                .buttonStyle(.plain)
-            }
-            
-            Divider().background(Color.white.opacity(0.1))
-            
-            VStack(spacing: 6) {
+    @ViewBuilder
+    private var seatClassListView: some View {
+        ScrollView {
+            VStack(spacing: 4) {
                 ForEach(FocusSeatClass.allCases) { seat in
+                    let isSelected = selectedSeat == seat
+                    
                     Button {
                         selectedSeat = seat
-                        isShowingSeatPicker = false
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                            activeDrawer = nil
+                        }
                     } label: {
                         HStack(spacing: 8) {
                             ZStack {
                                 Circle()
-                                    .fill(Color.white.opacity(0.15))
-                                    .frame(width: 24, height: 24)
+                                    .fill(Color.white.opacity(0.12))
+                                    .frame(width: 22, height: 22)
                                 Image(systemName: seat.iconSymbol)
-                                    .font(.system(size: 11, weight: .bold))
+                                    .font(.system(size: 10, weight: .bold))
                                     .foregroundStyle(Color.white)
                             }
                             
                             VStack(alignment: .leading, spacing: 1) {
-                                HStack {
+                                HStack(spacing: 4) {
                                     Text(seat.title)
-                                        .font(.system(size: 11, weight: .bold))
+                                        .font(.system(size: 10.5, weight: .bold))
                                         .foregroundStyle(Color.white)
                                     Text("[\(seat.seatCode)]")
-                                        .font(.system(size: 9.5, weight: .bold, design: .monospaced))
-                                        .foregroundStyle(Color.white)
+                                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                        .foregroundStyle(Color.white.opacity(0.7))
                                 }
                                 Text(seat.subtitle)
-                                    .font(.system(size: 8.5))
+                                    .font(.system(size: 8))
                                     .foregroundStyle(KaruTheme.textSecondary)
                             }
                             
                             Spacer()
                             
-                            if selectedSeat == seat {
+                            if isSelected {
                                 Image(systemName: "checkmark.seal.fill")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(Color.white)
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(Color(hex: 0xFF5C00))
                             }
                         }
                         .padding(.horizontal, 8)
-                        .padding(.vertical, 6)
-                        .background(selectedSeat == seat ? KaruTheme.surfaceElevated : KaruTheme.recessedTray)
-                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous), style: FillStyle(antialiased: true))
+                        .padding(.vertical, 5)
+                        .background(isSelected ? KaruTheme.surfaceElevated : Color.white.opacity(0.03))
+                        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
                     }
                     .buttonStyle(.plain)
                 }
             }
         }
-        .padding(12)
-        .frame(width: 280)
-        .background(KaruTheme.surface)
+        .frame(maxHeight: 135)
     }
 }
