@@ -28,15 +28,20 @@
 - **ADR-005 (Notch Integration):** Uses `NSScreen.auxiliaryTopLeftArea` / `auxiliaryTopRightArea` for hardware notch wings with graceful Menu Bar fallback on external/non-notch displays.
 - **ADR-006 (Ambient Audio):** Low-latency `AVAudioEngine` sound pipelines with 400ms crossfade between cruise and stall states.
 - **ADR-007 (App Classification):** Triple-state categorization (`focusWorkspace`, `distractionHazard`, `neutralUtility`) with bundle-ID lookup.
+- **ADR-008 (In-Flight Scratchpad):** Debounced auto-save markdown scratchpad attached to active trip logs.
 
 ---
 
 ## 💻 Development & Build Commands
-- **Build Package / Project:**
+- **Build Package / Targets:**
   ```bash
   swift build
   ```
-- **Run Unit & Integration Tests:**
+- **Build with Warnings as Errors:**
+  ```bash
+  swift build -Xswiftc -warnings-as-errors
+  ```
+- **Run All Unit Tests:**
   ```bash
   swift test
   ```
@@ -60,7 +65,7 @@
 - Avoid legacy `DispatchQueue.main.async` in favor of `@MainActor` or `Task { @MainActor in ... }`.
 
 ### 2. SwiftUI & AppKit Hybrid Design
-- Keep business logic in pure Swift models and ViewModel services.
+- Keep core business logic in pure Swift models (`KaruCore`) decoupled from AppKit / SwiftUI.
 - Wrap AppKit controls in `NSViewRepresentable` or manage window lifecycles through dedicated `NSWindowController` / `NSPanel` subclasses.
 - Use `NSVisualEffectView` with `.behindWindow` blending and `.hudWindow` / `.popover` material for macOS dark-mode vibrancy.
 - Support smooth 60fps/120fps ProMotion animations using SwiftUI spring animations (`.spring(response:dampingFraction:)`).
@@ -82,40 +87,51 @@
 
 ```
 Karu/
-├── Package.swift                    # Swift package / project manifest
+├── Package.swift                         # Swift package manifest (KaruCore library + Karu executable)
 ├── Sources/
-│   ├── Karu/                        # App Entry Point & Lifecycle
-│   │   ├── KaruApp.swift            # SwiftUI App entry & AppKit bridge
-│   │   └── AppDelegate.swift        # NSApplicationDelegate & MenuBar controller
-│   ├── Core/                        # State Engines & Services
-│   │   ├── TransitEngine.swift      # Velocity, distance, cruise/stall state machine
-│   │   ├── DistractionMonitor.swift # NSWorkspace active app listener
-│   │   ├── AppClassifier.swift      # Whitelist/Blacklist/Neutral rule evaluator
-│   │   └── AudioEngine.swift        # AVAudioEngine ambient soundscapes & crossfader
-│   ├── Models/                      # Core Domain Models
-│   │   ├── TripSession.swift        # Active and completed trip records
-│   │   ├── Habit.swift              # Habit tracks, target times & streaks
-│   │   ├── VehicleProfile.swift     # Vehicle skins, gauges & audio configs
-│   │   └── AppFilterRule.swift      # Bundle ID classification models
-│   ├── Storage/                     # Local-First Persistence
-│   │   ├── LocalStorageManager.swift# Atomic JSON/SwiftData manager
-│   │   └── ScratchpadStore.swift    # Auto-saving in-flight notes store
-│   └── UI/                          # SwiftUI Views & AppKit Windows
-│       ├── MenuBar/                 # Menu Bar HUD item & popover dashboard
-│       ├── Notch/                   # Dynamic Notch wings & dropdown cockpit
-│       ├── FloatingHUD/             # Translucent floating overlay panel
-│       ├── Scratchpad/              # Live notes editor
-│       ├── Garage/                  # Vehicle selection & hangar
-│       └── Settings/                # App whitelist/blacklist & preference views
+│   ├── KaruCore/                         # Core Logic Library (Zero AppKit UI dependencies)
+│   │   ├── Core/                         # State Engines & Services
+│   │   │   ├── TransitEngine.swift       # Velocity (100km/h vs 0km/h), distance, state machine
+│   │   │   ├── DistractionMonitor.swift  # NSWorkspace active app notification listener
+│   │   │   ├── AppClassifier.swift       # Whitelist/Blacklist/Neutral rule evaluator
+│   │   │   └── AudioEngine.swift         # AVAudioEngine ambient soundscapes & crossfader
+│   │   ├── Models/                       # Core Domain Models
+│   │   │   ├── TransitState.swift        # State enum, speed formatting, route presets
+│   │   │   ├── TripSession.swift         # Active and completed trip records & incident logs
+│   │   │   ├── Habit.swift               # Habit tracks, target times & streaks
+│   │   │   ├── VehicleProfile.swift      # Vehicle skins, audio configs & profiles
+│   │   │   └── AppFilterRule.swift       # Bundle ID classification models & presets
+│   │   └── Storage/                      # Local-First Persistence
+│   │       ├── LocalStorageManager.swift # Atomic JSON/SwiftData manager
+│   │       └── ScratchpadStore.swift     # Auto-saving in-flight notes store
+│   └── Karu/                             # macOS Application Executable Target
+│       ├── KaruApp.swift                 # SwiftUI App entry point & global menu commands
+│       ├── AppDelegate.swift             # NSApplicationDelegate & HUD window coordination
+│       └── UI/                           # SwiftUI Views & AppKit Window Controllers
+│           ├── MenuBar/                  # MenuBarController & DiagnosticPopoverView
+│           ├── Notch/                    # NotchWindowController & NotchWingsView
+│           ├── FloatingHUD/              # FloatingHUDPanel & FloatingHUDView
+│           ├── Sidebar/                  # SidebarHUDPanel, SidebarHUDView, ModularWidgets
+│           ├── Aviation/                 # AviationFlightCard, CockpitDialCard, DeskMinderTransitCard
+│           ├── Navigation/               # HighwayNavigationView, LiveRouteTrackingView, OpenFreeMapView
+│           ├── Garage/                   # GarageHangarView (Vehicle & Soundscape picker)
+│           ├── Scratchpad/               # ScratchpadView (In-flight Markdown editor)
+│           ├── Settings/                 # AppFilterSettingsView (Rule editor & preset manager)
+│           └── Theme/                    # KaruTheme, SpaceXTelemetryViews, VehicleDigitalTwinView
 ├── Tests/
-│   ├── CoreTests/                   # Transit engine, classifier & math tests
-│   └── StorageTests/                # Local persistence & atomic write tests
-└── docs/                            # PRD, Architecture Decision Records (ADRs)
+│   └── KaruCoreTests/                    # Comprehensive unit tests
+│       ├── TransitEngineTests.swift      # Velocity, efficiency, incident tracking tests
+│       ├── AppClassifierTests.swift      # Bundle ID matching, overrides & preset tests
+│       ├── LocalStorageTests.swift       # Atomic persistence & crash-resilience tests
+│       ├── AudioEngineTests.swift        # Soundscape lifecycle & crossfade tests
+│       └── ModelTests.swift              # Serialization & domain model logic tests
+└── docs/                                 # PRD, Specifications, and Architecture Decision Records
 ```
 
 ---
 
 ## ❓ Confusion Management & Escalation
 1. **Ambiguous Requirements:** Stop and surface options with clear trade-offs before proceeding.
-2. **Notch vs Non-Notch Geometry:** Always verify `screen.auxiliaryTopLeftArea != nil` before rendering Notch Wings; gracefully fall back to Menu Bar / Floating Pill.
+2. **Notch vs Non-Notch Geometry:** Always verify `screen.auxiliaryTopLeftArea != nil` before rendering Notch Wings; gracefully fall back to Menu Bar / Floating Pill / Sidebar.
 3. **AppKit vs SwiftUI Boundaries:** UI components belong in SwiftUI; window levels, screen attachment, and menu bar lifecycle belong in AppKit controllers.
+

@@ -4,7 +4,7 @@
 - Modern MacBooks (M1/M2/M3 Pro & Air) feature a physical camera notch.
 - Query `screen.auxiliaryTopLeftArea` and `screen.auxiliaryTopRightArea`:
   - If areas are non-nil and width > 0: Position the left wing (velocity) and right wing (progress/habit) directly in the auxiliary areas.
-  - If areas are nil or user is on an external display (Studio Display / UltraWide): Fall back to the Menu Bar HUD status item and/or compact floating HUD pill.
+  - If areas are nil or user is on an external display (Studio Display / UltraWide): Fall back to the Menu Bar HUD status item and/or compact floating HUD / sidebar pill.
 - Re-evaluate screen layout upon `NSApplication.didChangeScreenParametersNotification`.
 
 ## 2. Menu Bar Status Item & Popover
@@ -15,7 +15,14 @@
   - Idle: Dim monochrome route glyph.
 - `NSPopover` with `behavior = .transient` for the cockpit diagnostic dropdown.
 
-## 3. Floating HUD Overlay Panel
+## 3. Sidebar Edge-Docked HUD Panel (`SidebarHUDPanel`)
+- Custom `NSPanel` docked seamlessly to the right screen bezel:
+  - `styleMask: [.nonactivatingPanel, .hudWindow, .borderless]`
+  - `level: .floating`
+  - `collectionBehavior: [.canJoinAllSpaces, .fullScreenAuxiliary]`
+  - Collapsible drawer showing telemetry widgets, live mini-map, vehicle diagnostics, and scratchpad.
+
+## 4. Floating HUD Overlay Panel (`FloatingHUDPanel`)
 - Custom `NSPanel` subclass:
   - `styleMask: [.nonactivatingPanel, .hudWindow, .borderless, .resizable]`
   - `level: .floating`
@@ -23,3 +30,4 @@
   - `isMovableByWindowBackground: true`
   - `hasShadow: true`
 - Ensures continuous visibility over full-screen IDEs and browser documents without stealing keyboard focus.
+

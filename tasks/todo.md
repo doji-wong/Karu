@@ -97,3 +97,30 @@
   - **Files:** `Sources/Karu/UI/Scratchpad/ScratchpadView.swift`, `Sources/Karu/UI/Garage/GarageHangarView.swift`, `Sources/Karu/UI/Settings/AppFilterSettingsView.swift`
 - [x] **Task 6.6: Wire App Entry Point (KaruApp & AppDelegate)**
   - **Files:** `Sources/Karu/KaruApp.swift`, `Sources/Karu/AppDelegate.swift`
+
+---
+
+## Phase 7: Edge-Docked Sidebar & Navigation Cockpit (`sidebar-cockpit`)
+- [x] **Task 7.1: Implement Edge-Docked Sidebar HUD Panel**
+  - **Acceptance:** Full-height right-bezel drawer with smooth slide toggle and screen parameter resilience.
+  - **Files:** `Sources/Karu/UI/Sidebar/SidebarHUDPanel.swift`, `Sources/Karu/UI/Sidebar/SidebarHUDView.swift`, `Sources/Karu/UI/Sidebar/SidebarNotchView.swift`
+- [x] **Task 7.2: Implement Modular Cockpit Cards**
+  - **Acceptance:** Reusable `DeskMinderTransitCard`, `CockpitDialCard`, and `AviationFlightCard` for modular HUD assembly.
+  - **Files:** `Sources/Karu/UI/Aviation/`, `Sources/Karu/UI/Sidebar/ModularWidgets.swift`
+- [x] **Task 7.3: Implement Highway Navigation & Route Radar**
+  - **Acceptance:** Waze-style route simulation, waypoint progress, and live lane clearance indicators.
+  - **Files:** `Sources/Karu/UI/Navigation/HighwayNavigationView.swift`, `LiveRouteTrackingView.swift`, `OpenFreeMapView.swift`
+- [x] **Task 7.4: Implement Vehicle Digital Twin & SpaceX Telemetry**
+  - **Acceptance:** Animated vehicle visualizer with wheel spin physics and mission-control telemetry styling.
+  - **Files:** `Sources/Karu/UI/Theme/VehicleDigitalTwinView.swift`, `Sources/Karu/UI/Theme/SpaceXTelemetryViews.swift`
+
+---
+
+## Phase 8: Context Optimization & Release Hardening (`quality-and-release`)
+- [x] **Task 8.1: Context Engineering & Documentation Sync**
+  - **Acceptance:** Sync `AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, `docs/PROJECT_MAP.md`, `docs/CAPABILITY_MAP.md`, `.agents/rules/`.
+- [x] **Task 8.2: Strict Compilation & Test Verification**
+  - **Acceptance:** `swift build -Xswiftc -warnings-as-errors` and `swift test` pass with 100% assertions.
+- [ ] **Task 8.3: Release Packaging & App Icon Asset Bundle**
+  - **Acceptance:** `.app` bundle build script and asset catalog generation for macOS distribution.
+

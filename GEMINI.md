@@ -15,10 +15,12 @@ This file mirrors the core instructions in [AGENTS.md](file:///Users/vinbaldove/
    - Never use polling loops (`Timer.scheduledTimer`) for background application detection.
    - Respect target budgets: `< 0.5%` CPU idle/active, `< 45 MB` RAM.
 4. **Windowing & Notch Primitives:**
-   - Floating HUD uses `NSPanel` with `.nonactivatingPanel`, `.floating`, `.canJoinAllSpaces`.
+   - Floating HUD and Sidebar HUD use `NSPanel` with `.nonactivatingPanel`, `.floating`, `.canJoinAllSpaces`.
    - Notch Wings use `NSScreen.auxiliaryTopLeftArea` and `NSScreen.auxiliaryTopRightArea` with automatic fallback to Menu Bar HUD on external or non-notch displays.
-5. **Swift Concurrency:**
-   - Mark UI components, view models, and window controllers with `@MainActor`.
+5. **Swift Concurrency & Decoupled Architecture:**
+   - Keep core business logic inside `KaruCore` (pure Swift models, engines, storage).
+   - Mark UI components, view models, and window controllers in `Karu` with `@MainActor`.
    - Ensure thread-safe models conform to `Sendable`.
 
 For full documentation and component references, see [docs/PRD.md](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/PRD.md) and [docs/PROJECT_MAP.md](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/PROJECT_MAP.md).
+
