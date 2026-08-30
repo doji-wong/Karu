@@ -2,7 +2,7 @@ import SwiftUI
 import KaruCore
 
 /// Floating Avionics Flight HUD View for macOS.
-/// Primarily renders as an ultra-compact minimalist plane progress bar with live airspeed,
+/// Primarily renders as an ultra-compact minimalist plane progress bar,
 /// and provides optional 1-click smooth expansion to the full Direction A Flight Card.
 public struct FloatingHUDView: View {
     @Bindable public var engine: TransitEngine
@@ -46,49 +46,6 @@ public struct FloatingHUDView: View {
         return "-25M 00S"
     }
 
-    private var statusDotColor: Color {
-        switch engine.state {
-        case .idle:
-            return Color.white.opacity(0.4)
-        case .cruising:
-            return Color(hex: 0x10B981) // Emerald Active
-        case .trafficStalled:
-            return Color(hex: 0xEF4444) // Red Turbulence
-        case .pitStop:
-            return Color(hex: 0xF59E0B) // Amber Hold
-        case .completed:
-            return Color(hex: 0x3B82F6) // Blue Touchdown
-        }
-    }
-
-    private var speedText: String {
-        switch engine.state {
-        case .idle:
-            return "STANDBY"
-        case .cruising:
-            return "\(Int(engine.currentVelocity)) kts"
-        case .trafficStalled:
-            return "0 kts"
-        case .pitStop:
-            return "HOLD"
-        case .completed:
-            return "LANDED"
-        }
-    }
-
-    private var statusTextColor: Color {
-        switch engine.state {
-        case .cruising:
-            return Color.white
-        case .trafficStalled:
-            return Color(hex: 0xEF4444)
-        case .pitStop:
-            return Color(hex: 0xF59E0B)
-        default:
-            return KaruTheme.textSecondary
-        }
-    }
-
     public var body: some View {
         Group {
             if isExpandedToFullCard {
@@ -109,25 +66,6 @@ public struct FloatingHUDView: View {
     @ViewBuilder
     private var compactFlightPillView: some View {
         HStack(spacing: 8) {
-            // Speed / Telemetry Badge
-            HStack(spacing: 4) {
-                Circle()
-                    .fill(statusDotColor)
-                    .frame(width: 5, height: 5)
-                Text(speedText)
-                    .font(.system(size: 8.5, weight: .black, design: .monospaced))
-                    .foregroundStyle(statusTextColor)
-            }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 3.5)
-            .background(
-                Capsule()
-                    .fill(KaruTheme.recessedTray)
-                    .overlay(
-                        Capsule().strokeBorder(Color.white.opacity(0.04), lineWidth: 0.5, antialiased: true)
-                    )
-            )
-
             // Luminous Airplane Slider Track (Plane Loading Bar)
             LuminousSliderTrackView(
                 progress: progress,
@@ -185,19 +123,19 @@ public struct FloatingHUDView: View {
                 }
             }
         }
-        .padding(.horizontal, 9)
+        .padding(.horizontal, 8)
         .padding(.vertical, 6)
-        .frame(width: 340, height: 44)
+        .frame(width: 300, height: 40)
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(KaruTheme.carbonMatte)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
                         .strokeBorder(Color.white.opacity(0.06), lineWidth: 0.5, antialiased: true)
                 )
-                .shadow(color: Color.black.opacity(0.55), radius: 10, x: 0, y: 3)
+                .shadow(color: Color.black.opacity(0.55), radius: 8, x: 0, y: 3)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous), style: FillStyle(antialiased: true))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous), style: FillStyle(antialiased: true))
         .onTapGesture(count: 2) {
             withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                 isExpandedToFullCard = true
@@ -231,7 +169,7 @@ public struct FloatingHUDView: View {
                 onToggleFloatingHUD: {
                     withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                         isExpandedToFullCard = false
-                        onSizeChange?(340, 44)
+                        onSizeChange?(300, 40)
                     }
                 }
             )
@@ -241,7 +179,7 @@ public struct FloatingHUDView: View {
                 Button {
                     withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                         isExpandedToFullCard = false
-                        onSizeChange?(340, 44)
+                        onSizeChange?(300, 40)
                     }
                 } label: {
                     Image(systemName: "arrow.down.right.and.arrow.up.left")

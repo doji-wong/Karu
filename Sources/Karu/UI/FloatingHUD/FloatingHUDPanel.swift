@@ -9,8 +9,8 @@ public final class FloatingHUDPanel: NSPanel {
     
     public init(engine: TransitEngine) {
         super.init(
-            contentRect: NSRect(x: 100, y: 100, width: 340, height: 44),
-            styleMask: [.nonactivatingPanel, .borderless, .hudWindow],
+            contentRect: NSRect(x: 100, y: 100, width: 300, height: 40),
+            styleMask: [.nonactivatingPanel, .borderless],
             backing: .buffered,
             defer: false
         )
@@ -19,7 +19,7 @@ public final class FloatingHUDPanel: NSPanel {
         self.isMovableByWindowBackground = true
         self.isOpaque = false
         self.backgroundColor = .clear
-        self.hasShadow = true
+        self.hasShadow = false
 
         let hudView = FloatingHUDView(
             engine: engine,
@@ -36,10 +36,10 @@ public final class FloatingHUDPanel: NSPanel {
         hostingView.layer?.allowsEdgeAntialiasing = true
         hostingView.layer?.edgeAntialiasingMask = [.layerLeftEdge, .layerRightEdge, .layerTopEdge, .layerBottomEdge]
         self.contentView = hostingView
-        centerOnScreen(width: 340, height: 44)
+        centerOnScreen(width: 300, height: 40)
     }
 
-    private func centerOnScreen(width: CGFloat = 340, height: CGFloat = 44) {
+    private func centerOnScreen(width: CGFloat = 300, height: CGFloat = 40) {
         if let screen = NSScreen.main {
             let screenRect = screen.visibleFrame
             let x = screenRect.midX - (width / 2)
