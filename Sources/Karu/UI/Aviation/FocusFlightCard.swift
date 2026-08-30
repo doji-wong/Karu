@@ -22,9 +22,13 @@ public struct FocusFlightCard: View {
     public var onOpenSettings: (() -> Void)?
     public var onOpenLogbook: (() -> Void)?
     
-    // Flight Route & Destination (Default YYZ ➔ HND)
-    @State private var originAirport: DestinationAirport = DestinationAirport.find(code: "YYZ")
-    @State private var destinationAirport: DestinationAirport = DestinationAirport.find(code: "HND")
+    // Flight Route & Destination (Directly bound to engine)
+    public var originAirport: DestinationAirport {
+        DestinationAirport.find(code: engine.activeOrigin)
+    }
+    public var destinationAirport: DestinationAirport {
+        DestinationAirport.find(code: engine.activeDestination)
+    }
     @State private var selectedSeat: FocusSeatClass = .code
     
     // Custom Mission / Seat
@@ -130,6 +134,9 @@ public struct FocusFlightCard: View {
     private var departureTimeString: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "EEE, h:mm a"
+        if let tz = TimeZone(identifier: originAirport.timeZoneIdentifier) {
+            formatter.timeZone = tz
+        }
         if let session = engine.activeSession {
             return formatter.string(from: session.startDate).uppercased()
         }
@@ -146,6 +153,9 @@ public struct FocusFlightCard: View {
         let arrivalDate = Date().addingTimeInterval(durationSecs)
         let formatter = DateFormatter()
         formatter.dateFormat = "EEE, h:mm a"
+        if let tz = TimeZone(identifier: destinationAirport.timeZoneIdentifier) {
+            formatter.timeZone = tz
+        }
         return formatter.string(from: arrivalDate).uppercased()
     }
     
@@ -159,6 +169,10 @@ public struct FocusFlightCard: View {
         let etaDate = Date().addingTimeInterval(durationSecs)
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm a"
+        let activeAirport = showDestinationTime ? destinationAirport : originAirport
+        if let tz = TimeZone(identifier: activeAirport.timeZoneIdentifier) {
+            formatter.timeZone = tz
+        }
         return "ETA \(formatter.string(from: etaDate))"
     }
     
@@ -248,8 +262,6 @@ public struct FocusFlightCard: View {
             }
         }
         .onAppear {
-            originAirport = DestinationAirport.find(code: engine.activeOrigin)
-            destinationAirport = DestinationAirport.find(code: engine.activeDestination)
             if let seatClass = FocusSeatClass.find(code: engine.activeSeatCode) {
                 selectedSeat = seatClass
                 isCustomSeatSelected = false
@@ -624,10 +636,8 @@ public struct FocusFlightCard: View {
                         
                         Button {
                             if isOrigin {
-                                originAirport = airport
                                 engine.updateRoute(origin: airport.code, destination: destinationAirport.code)
                             } else {
-                                destinationAirport = airport
                                 engine.updateRoute(origin: originAirport.code, destination: airport.code)
                             }
                             withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
