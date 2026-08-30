@@ -1,7 +1,7 @@
 import SwiftUI
 import KaruCore
 
-/// The Left telemetry wing flanking the MacBook camera notch (Speedometer).
+/// The Left telemetry wing flanking the MacBook camera notch (Flight Speed & Status).
 public struct NotchLeftWingView: View {
     @Bindable public var engine: TransitEngine
     @State private var isHovering: Bool = false
@@ -12,30 +12,26 @@ public struct NotchLeftWingView: View {
 
     public var body: some View {
         HStack(spacing: 5) {
-            Image(systemName: engine.state == .trafficStalled ? "exclamationmark.triangle.fill" : "bolt.car.fill")
-                .foregroundStyle(KaruTheme.statusGlow(for: engine.state))
+            Image(systemName: engine.state == .trafficStalled ? "wind" : (engine.state == .cruising ? "airplane.departure" : "airplane"))
+                .foregroundStyle(statusColor)
                 .font(.system(size: 11, weight: .bold))
                 .symbolEffect(.pulse, options: .repeating, isActive: engine.state == .cruising)
 
-            Text("\(Int(engine.currentVelocity))")
+            Text(engine.state == .cruising ? "540 kts" : (engine.state == .trafficStalled ? "HOLD" : "FL 288"))
                 .font(KaruTheme.captionMono)
                 .fontWeight(.bold)
-                .foregroundStyle(KaruTheme.statusGlow(for: engine.state))
-
-            Text("km/h")
-                .font(.system(size: 9, design: .monospaced))
-                .foregroundStyle(KaruTheme.textMuted)
+                .foregroundStyle(statusColor)
         }
         .padding(.horizontal, isHovering ? 10 : 8)
         .padding(.vertical, isHovering ? 4 : 3)
         .background(
             Capsule()
                 .fill(Color.black.opacity(0.9))
-                .shadow(color: KaruTheme.statusGlow(for: engine.state).opacity(isHovering ? 0.6 : 0.2), radius: isHovering ? 8 : 4)
+                .shadow(color: statusColor.opacity(isHovering ? 0.6 : 0.2), radius: isHovering ? 8 : 4)
         )
         .overlay(
             Capsule()
-                .stroke(KaruTheme.statusGlow(for: engine.state).opacity(isHovering ? 0.8 : 0.3), lineWidth: 1)
+                .stroke(statusColor.opacity(isHovering ? 0.8 : 0.3), lineWidth: 1)
         )
         .scaleEffect(isHovering ? 1.06 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovering)
@@ -43,9 +39,13 @@ public struct NotchLeftWingView: View {
             isHovering = hovering
         }
     }
+    
+    private var statusColor: Color {
+        KaruTheme.statusGlow(for: engine.state)
+    }
 }
 
-/// The Right telemetry wing flanking the MacBook camera notch (Route Progress).
+/// The Right telemetry wing flanking the MacBook camera notch (Route & Countdown).
 public struct NotchRightWingView: View {
     @Bindable public var engine: TransitEngine
     @State private var isHovering: Bool = false
@@ -60,25 +60,27 @@ public struct NotchRightWingView: View {
                 if let target = session.targetDuration {
                     let remaining = max(0, target - session.cruisingDuration)
                     let mins = Int(remaining) / 60
-                    Text("📍 \(mins)m")
-                        .font(KaruTheme.captionMono)
-                        .foregroundStyle(KaruTheme.navCyan)
+                    let hours = mins / 60
+                    let remMins = mins % 60
+                    
+                    if hours > 0 {
+                        Text("🛬 \(hours)h \(remMins)m")
+                            .font(KaruTheme.captionMono)
+                            .foregroundStyle(KaruTheme.luminousLime)
+                    } else {
+                        Text("🛬 \(mins)m")
+                            .font(KaruTheme.captionMono)
+                            .foregroundStyle(KaruTheme.luminousLime)
+                    }
                 } else {
-                    Text("📍 Open")
+                    Text("🛬 Open Run")
                         .font(KaruTheme.captionMono)
-                        .foregroundStyle(KaruTheme.navCyan)
-                }
-
-                if let habitName = session.habitName {
-                    Text("· \(habitName)")
-                        .font(.system(size: 10))
-                        .foregroundStyle(KaruTheme.textSecondary)
-                        .lineLimit(1)
+                        .foregroundStyle(KaruTheme.luminousLime)
                 }
             } else {
-                Text("Karu")
+                Text("YYZ ➔ HND")
                     .font(KaruTheme.captionMono)
-                    .foregroundStyle(KaruTheme.textMuted)
+                    .foregroundStyle(Color.white.opacity(0.7))
             }
         }
         .padding(.horizontal, isHovering ? 10 : 8)
@@ -86,11 +88,11 @@ public struct NotchRightWingView: View {
         .background(
             Capsule()
                 .fill(Color.black.opacity(0.9))
-                .shadow(color: KaruTheme.navCyan.opacity(isHovering ? 0.6 : 0.2), radius: isHovering ? 8 : 4)
+                .shadow(color: KaruTheme.luminousLime.opacity(isHovering ? 0.6 : 0.2), radius: isHovering ? 8 : 4)
         )
         .overlay(
             Capsule()
-                .stroke(KaruTheme.navCyan.opacity(isHovering ? 0.8 : 0.3), lineWidth: 1)
+                .stroke(KaruTheme.luminousLime.opacity(isHovering ? 0.8 : 0.3), lineWidth: 1)
         )
         .scaleEffect(isHovering ? 1.06 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovering)
