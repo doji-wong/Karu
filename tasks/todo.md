@@ -6,15 +6,15 @@
   - **Verify:** `swift package describe`
   - **Files:** `Package.swift`
 - [x] **Task 1.2: Implement Transit State & Telemetry Models**
-  - **Acceptance:** `TransitState.swift` defines `.idle`, `.cruising`, `.trafficStalled`, `.pitStop`, `.completed` with velocity formatting and state indicators.
+  - **Acceptance:** `TransitState.swift` defines `.idle`, `.cruising`, `.trafficStalled`, `.pitStop`, `.completed` with 540 kts velocity and airport definitions (`DestinationAirport`).
   - **Verify:** `swift test --filter ModelTests`
   - **Files:** `Sources/KaruCore/Models/TransitState.swift`
 - [x] **Task 1.3: Implement App Filter Rule & Preset Models**
   - **Acceptance:** `AppFilterRule.swift` defines `AppFocusCategory`, custom bundle rules, and Developer/Student/Writer default presets.
   - **Verify:** `swift test --filter ModelTests`
   - **Files:** `Sources/KaruCore/Models/AppFilterRule.swift`
-- [x] **Task 1.4: Implement Trip Session, Habit & Vehicle Models**
-  - **Acceptance:** `TripSession.swift`, `Habit.swift`, and `VehicleProfile.swift` conform to `Codable`, `Identifiable`, `Sendable`.
+- [x] **Task 1.4: Implement Trip Session, Habit & Aircraft Models**
+  - **Acceptance:** `TripSession.swift`, `Habit.swift`, and `VehicleProfile.swift` conform to `Codable`, `Identifiable`, `Sendable` with `TurbulenceEncounter` and `AircraftType`.
   - **Verify:** `swift test --filter ModelTests`
   - **Files:** `Sources/KaruCore/Models/TripSession.swift`, `Sources/KaruCore/Models/Habit.swift`, `Sources/KaruCore/Models/VehicleProfile.swift`
 - [x] **Task 1.5: Write Model Unit Tests**
@@ -24,13 +24,13 @@
 
 ---
 
-## Phase 2: Transit Engine & Math Core (`transit-engine`)
+## Phase 2: Flight Engine & Velocity Core (`transit-engine`)
 - [x] **Task 2.1: Implement TransitEngine State Machine**
-  - **Acceptance:** Manages cruise speed (100 km/h) vs stalled speed (0 km/h), ticks, distance, and pit stops.
+  - **Acceptance:** Manages cruise speed (540 kts) vs turbulence speed (0 kts), ticks, distance (NM), and gate holds.
   - **Verify:** `swift test --filter TransitEngineTests`
   - **Files:** `Sources/KaruCore/Core/TransitEngine.swift`
-- [x] **Task 2.2: Implement Efficiency Math & Incident Logging**
-  - **Acceptance:** Computes cruise efficiency percentage accurately; records `TrafficIncident` events when entering stall state.
+- [x] **Task 2.2: Implement Efficiency Math & Turbulence Logging**
+  - **Acceptance:** Computes cruise efficiency percentage accurately; records `TurbulenceEncounter` events when entering stall state.
   - **Verify:** `swift test --filter TransitEngineTests`
   - **Files:** `Sources/KaruCore/Core/TransitEngine.swift`
 - [x] **Task 2.3: Write TransitEngine Unit Tests**
@@ -56,16 +56,12 @@
 
 ---
 
-## Phase 4: Local Persistence & In-Flight Scratchpad (`local-storage`)
+## Phase 4: Local Persistence & Storage (`local-storage`)
 - [x] **Task 4.1: Implement LocalStorageManager**
-  - **Acceptance:** Atomic JSON read/write in `Application Support/Karu/` with error recovery.
+  - **Acceptance:** Atomic JSON read/write in `Application Support/Karu/` for trips, habits, rules, and fleet preferences with error recovery.
   - **Verify:** `swift test --filter LocalStorageTests`
   - **Files:** `Sources/KaruCore/Storage/LocalStorageManager.swift`
-- [x] **Task 4.2: Implement ScratchpadStore**
-  - **Acceptance:** Keystroke debouncing, local disk auto-save, and session travel log snapshotting.
-  - **Verify:** `swift test --filter LocalStorageTests`
-  - **Files:** `Sources/KaruCore/Storage/ScratchpadStore.swift`
-- [x] **Task 4.3: Write LocalStorage Unit Tests**
+- [x] **Task 4.2: Write LocalStorage Unit Tests**
   - **Acceptance:** Verifies roundtrip persistence, directory creation, and atomic write safety.
   - **Verify:** `swift test --filter LocalStorageTests`
   - **Files:** `Tests/KaruCoreTests/LocalStorageTests.swift`
@@ -74,7 +70,7 @@
 
 ## Phase 5: Ambient Audio Engine (`audio-engine`)
 - [x] **Task 5.1: Implement AudioEngine with AVAudioEngine**
-  - **Acceptance:** Low-latency playback with 400ms crossfade between cruise and stall nodes.
+  - **Acceptance:** Low-latency playback with 400ms crossfade between cruise and stall nodes, seatbelt chime, and 5 aircraft soundscapes.
   - **Verify:** `swift test --filter AudioEngineTests`
   - **Files:** `Sources/KaruCore/Core/AudioEngine.swift`
 - [x] **Task 5.2: Write AudioEngine Unit Tests**
@@ -85,42 +81,31 @@
 ---
 
 ## Phase 6: macOS UI & Windowing Layer (`macos-windowing-ui`)
-- [x] **Task 6.1: Implement KaruTheme Design System**
-  - **Files:** `Sources/Karu/UI/Theme/KaruTheme.swift`
+- [x] **Task 6.1: Implement KaruTheme & Graphic Components**
+  - **Files:** `Sources/Karu/UI/Theme/KaruTheme.swift`, `DotMatrixLEDView.swift`, `AviationGraphicComponents.swift`
 - [x] **Task 6.2: Implement MenuBarController & DiagnosticPopoverView**
   - **Files:** `Sources/Karu/UI/MenuBar/MenuBarController.swift`, `Sources/Karu/UI/MenuBar/DiagnosticPopoverView.swift`
 - [x] **Task 6.3: Implement NotchWindowController & NotchWingsView**
   - **Files:** `Sources/Karu/UI/Notch/NotchWindowController.swift`, `Sources/Karu/UI/Notch/NotchWingsView.swift`
 - [x] **Task 6.4: Implement FloatingHUDPanel & FloatingHUDView**
   - **Files:** `Sources/Karu/UI/FloatingHUD/FloatingHUDPanel.swift`, `Sources/Karu/UI/FloatingHUD/FloatingHUDView.swift`
-- [x] **Task 6.5: Implement ScratchpadView, GarageHangarView & Settings**
-  - **Files:** `Sources/Karu/UI/Scratchpad/ScratchpadView.swift`, `Sources/Karu/UI/Garage/GarageHangarView.swift`, `Sources/Karu/UI/Settings/AppFilterSettingsView.swift`
-- [x] **Task 6.6: Wire App Entry Point (KaruApp & AppDelegate)**
+- [x] **Task 6.5: Implement FocusFlightCard with Dual Airport Selector & Inline Accordion Drawers**
+  - **Files:** `Sources/Karu/UI/Aviation/FocusFlightCard.swift`
+- [x] **Task 6.6: Implement 1-Click Running App Radar in Settings**
+  - **Files:** `Sources/Karu/UI/Settings/AppFilterSettingsView.swift`
+- [x] **Task 6.7: Implement Pilot's Flight Logbook Window (Cmd + L)**
+  - **Files:** `Sources/Karu/UI/Logbook/LogbookView.swift`
+- [x] **Task 6.8: Implement Aircraft Fleet Hangar**
+  - **Files:** `Sources/Karu/UI/Garage/GarageHangarView.swift`
+- [x] **Task 6.9: Wire App Entry Point (KaruApp & AppDelegate)**
   - **Files:** `Sources/Karu/KaruApp.swift`, `Sources/Karu/AppDelegate.swift`
 
 ---
 
-## Phase 7: Edge-Docked Sidebar & Navigation Cockpit (`sidebar-cockpit`)
-- [x] **Task 7.1: Implement Edge-Docked Sidebar HUD Panel**
-  - **Acceptance:** Full-height right-bezel drawer with smooth slide toggle and screen parameter resilience.
-  - **Files:** `Sources/Karu/UI/Sidebar/SidebarHUDPanel.swift`, `Sources/Karu/UI/Sidebar/SidebarHUDView.swift`, `Sources/Karu/UI/Sidebar/SidebarNotchView.swift`
-- [x] **Task 7.2: Implement Modular Cockpit Cards**
-  - **Acceptance:** Reusable `DeskMinderTransitCard`, `CockpitDialCard`, and `AviationFlightCard` for modular HUD assembly.
-  - **Files:** `Sources/Karu/UI/Aviation/`, `Sources/Karu/UI/Sidebar/ModularWidgets.swift`
-- [x] **Task 7.3: Implement Highway Navigation & Route Radar**
-  - **Acceptance:** Waze-style route simulation, waypoint progress, and live lane clearance indicators.
-  - **Files:** `Sources/Karu/UI/Navigation/HighwayNavigationView.swift`, `LiveRouteTrackingView.swift`, `OpenFreeMapView.swift`
-- [x] **Task 7.4: Implement Vehicle Digital Twin & SpaceX Telemetry**
-  - **Acceptance:** Animated vehicle visualizer with wheel spin physics and mission-control telemetry styling.
-  - **Files:** `Sources/Karu/UI/Theme/VehicleDigitalTwinView.swift`, `Sources/Karu/UI/Theme/SpaceXTelemetryViews.swift`
-
----
-
-## Phase 8: Context Optimization & Release Hardening (`quality-and-release`)
-- [x] **Task 8.1: Context Engineering & Documentation Sync**
-  - **Acceptance:** Sync `AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, `docs/PROJECT_MAP.md`, `docs/CAPABILITY_MAP.md`, `.agents/rules/`.
-- [x] **Task 8.2: Strict Compilation & Test Verification**
-  - **Acceptance:** `swift build -Xswiftc -warnings-as-errors` and `swift test` pass with 100% assertions.
-- [ ] **Task 8.3: Release Packaging & App Icon Asset Bundle**
-  - **Acceptance:** `.app` bundle build script and asset catalog generation for macOS distribution.
-
+## Phase 7: Quality Verification & Release Readiness (`quality-and-release`)
+- [x] **Task 7.1: Strict Compilation & Test Verification**
+  - **Acceptance:** `swift build -Xswiftc -warnings-as-errors` passes with 0 warnings; `swift test` passes 25/25 tests.
+- [x] **Task 7.2: Documentation & ADR Updates**
+  - **Acceptance:** ADR-001 through ADR-012 recorded; SPEC.md, PRD.md, PROJECT_MAP.md, CAPABILITY_MAP.md updated.
+- [ ] **Task 7.3: Distribution Packaging (.app bundle)**
+  - **Acceptance:** Application bundle packaging and asset catalog setup.

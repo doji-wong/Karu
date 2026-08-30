@@ -1,7 +1,7 @@
 # ADR-008: In-Flight Scratchpad & Note-Taking Architecture
 
 ## Status
-Accepted
+Superseded by [ADR-009](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/decisions/ADR-009-scratchpad-elimination-and-cognitive-simplicity.md) (Deprecated)
 
 ## Date
 2026-08-29

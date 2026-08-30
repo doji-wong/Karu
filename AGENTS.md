@@ -1,12 +1,13 @@
 # Karu — Project Rules & Agent Guidelines
 
 ## 🧭 Project Overview & Vision
-**Karu** is a native macOS Menu Bar & Floating HUD application for developers, students, and remote knowledge workers. It replaces anxiety-inducing countdown timers with a **route navigation and traffic velocity metaphor**:
-- **Cruising Velocity (100 km/h):** Active in approved focus workspaces (Xcode, VS Code, Obsidian, Docs, Terminal).
-- **Traffic Gridlock (0 km/h):** Active in blacklisted distraction apps (Discord, Twitter/X, Steam, social media).
-- **Notch Wings & Dynamic Cockpit:** Telemetry anchored to MacBook camera notch and Menu Bar.
-- **In-Flight Scratchpad & Habit Engine:** Local-first study notes and habit streaks.
-- **In-Flight Audio:** Vehicle-specific ambient soundscapes via `AVAudioEngine`.
+**Karu** is a native macOS Menu Bar & Floating HUD application for developers, students, and remote knowledge workers. It replaces anxiety-inducing countdown timers with an **aviation and flight velocity metaphor**:
+- **Cruising Velocity (540 kts):** Active in approved focus workspaces (Xcode, VS Code, Obsidian, Docs, Terminal).
+- **Turbulence Gridlock (0 kts):** Active in blacklisted distraction apps (Discord, Twitter/X, Steam, social media).
+- **Dual Airport Selection & Boarding Pass:** Origin and Destination IATA pairs with inline accordion drawers and timezones.
+- **Pilot's Logbook (`Cmd + L`):** Certified focus flight hours, distance flown (`NM`), touchdowns, and fleet on-time efficiency.
+- **1-Click Running App Radar:** Fast whitelist/blacklist configuration via active macOS apps with native icons.
+- **In-Flight Cabin Audio:** Vehicle-specific spatialized soundscapes via `AVAudioEngine`.
 
 ---
 
@@ -14,7 +15,7 @@
 - **Platform:** macOS 14.0+ (Sonoma) & macOS 15.0+ (Sequoia), Apple Silicon & Intel
 - **Language:** Swift 5.9+ / Swift 6.x
 - **UI Frameworks:** SwiftUI + AppKit (`NSStatusBar`, `NSPanel`, `NSVisualEffectView`)
-- **Data Persistence:** 100% Local-First (SwiftData / Atomic JSON in `~/Library/Application Support/Karu/`)
+- **Data Persistence:** 100% Local-First (Atomic JSON in `~/Library/Application Support/Karu/`)
 - **Audio Engine:** `AVAudioEngine` + `AVAudioPlayerNode` / `AVAudioMixerNode`
 - **Zero Cloud:** No user tracking, no telemetry, no mandatory cloud accounts
 
@@ -24,11 +25,15 @@
 - **ADR-001 (Native Architecture):** Pure native Swift/SwiftUI + AppKit. No Electron, no webview wrappers.
 - **ADR-002 (Distraction Detection):** Event-driven via `NSWorkspace.didActivateApplicationNotification`. Zero polling loops.
 - **ADR-003 (HUD & Windowing):** `NSPanel` with `.floating`, `.nonactivatingPanel`, `.canJoinAllSpaces`, and `.fullScreenAuxiliary`.
-- **ADR-004 (Local-First Data):** Local atomic file writes and SwiftData models. Zero cloud dependency.
+- **ADR-004 (Local-First Data):** Local atomic file writes. Zero cloud dependency.
 - **ADR-005 (Notch Integration):** Uses `NSScreen.auxiliaryTopLeftArea` / `auxiliaryTopRightArea` for hardware notch wings with graceful Menu Bar fallback on external/non-notch displays.
 - **ADR-006 (Ambient Audio):** Low-latency `AVAudioEngine` sound pipelines with 400ms crossfade between cruise and stall states.
 - **ADR-007 (App Classification):** Triple-state categorization (`focusWorkspace`, `distractionHazard`, `neutralUtility`) with bundle-ID lookup.
-- **ADR-008 (In-Flight Scratchpad):** Debounced auto-save markdown scratchpad attached to active trip logs.
+- **ADR-008 (In-Flight Scratchpad):** Superseded by ADR-009.
+- **ADR-009 (Scratchpad Elimination):** Complete deletion of notes feature to eliminate cognitive overhead and focus on telemetry.
+- **ADR-010 (Direction A Monochrome Avionics):** Pure carbon matte `#08080A`, Knots/NM velocity, dual airport selection, and inline accordion drawers.
+- **ADR-011 (1-Click Running App Radar):** Active app discovery via `NSWorkspace` with native icons and 1-click rules.
+- **ADR-012 (Pilot's Logbook):** Certified flight hours, distance flown, touchdowns, and on-time efficiency tracking (`Cmd + L`).
 
 ---
 
@@ -77,7 +82,7 @@
 - **Audio Memory:** Pre-buffer compact audio loops in `AVAudioPCMBuffer`. Do not decode large audio files on main thread.
 
 ### 4. Safety & Data Privacy
-- Never send user app usage, keystrokes, or notes to any external server.
+- Never send user app usage, keystrokes, or logs to any external server.
 - All file operations in `Application Support/Karu/` must be atomic (`Data.write(to:options: .atomic)`).
 - Handle multi-screen disconnects and display parameter changes gracefully via `NSApplication.didChangeScreenParametersNotification`.
 
@@ -91,47 +96,36 @@ Karu/
 ├── Sources/
 │   ├── KaruCore/                         # Core Logic Library (Zero AppKit UI dependencies)
 │   │   ├── Core/                         # State Engines & Services
-│   │   │   ├── TransitEngine.swift       # Velocity (100km/h vs 0km/h), distance, state machine
+│   │   │   ├── TransitEngine.swift       # Velocity (540 kts vs 0 kts), distance (NM), state machine
 │   │   │   ├── DistractionMonitor.swift  # NSWorkspace active app notification listener
 │   │   │   ├── AppClassifier.swift       # Whitelist/Blacklist/Neutral rule evaluator
 │   │   │   └── AudioEngine.swift         # AVAudioEngine ambient soundscapes & crossfader
 │   │   ├── Models/                       # Core Domain Models
 │   │   │   ├── TransitState.swift        # State enum, speed formatting, route presets
-│   │   │   ├── TripSession.swift         # Active and completed trip records & incident logs
+│   │   │   ├── TripSession.swift         # Active and completed trip records & turbulence logs
 │   │   │   ├── Habit.swift               # Habit tracks, target times & streaks
-│   │   │   ├── VehicleProfile.swift      # Vehicle skins, audio configs & profiles
+│   │   │   ├── VehicleProfile.swift      # Aircraft fleet types (A350F, B787, Concorde, G650, C172)
 │   │   │   └── AppFilterRule.swift       # Bundle ID classification models & presets
 │   │   └── Storage/                      # Local-First Persistence
-│   │       ├── LocalStorageManager.swift # Atomic JSON/SwiftData manager
-│   │       └── ScratchpadStore.swift     # Auto-saving in-flight notes store
+│   │       └── LocalStorageManager.swift # Atomic JSON persistence manager
 │   └── Karu/                             # macOS Application Executable Target
 │       ├── KaruApp.swift                 # SwiftUI App entry point & global menu commands
-│       ├── AppDelegate.swift             # NSApplicationDelegate & HUD window coordination
+│       ├── AppDelegate.swift             # NSApplicationDelegate & window coordination
 │       └── UI/                           # SwiftUI Views & AppKit Window Controllers
 │           ├── MenuBar/                  # MenuBarController & DiagnosticPopoverView
 │           ├── Notch/                    # NotchWindowController & NotchWingsView
 │           ├── FloatingHUD/              # FloatingHUDPanel & FloatingHUDView
-│           ├── Sidebar/                  # SidebarHUDPanel, SidebarHUDView, ModularWidgets
-│           ├── Aviation/                 # AviationFlightCard, CockpitDialCard, DeskMinderTransitCard
-│           ├── Navigation/               # HighwayNavigationView, LiveRouteTrackingView, OpenFreeMapView
-│           ├── Garage/                   # GarageHangarView (Vehicle & Soundscape picker)
-│           ├── Scratchpad/               # ScratchpadView (In-flight Markdown editor)
-│           ├── Settings/                 # AppFilterSettingsView (Rule editor & preset manager)
-│           └── Theme/                    # KaruTheme, SpaceXTelemetryViews, VehicleDigitalTwinView
+│           ├── Aviation/                 # FocusFlightCard (Boarding Pass & Inline Drawers)
+│           ├── Logbook/                  # LogbookView (Pilot's Flight Logbook - Cmd + L)
+│           ├── Garage/                   # GarageHangarView (Aircraft fleet & audio picker)
+│           ├── Settings/                 # AppFilterSettingsView (1-Click App Radar & Rules)
+│           └── Theme/                    # KaruTheme, DotMatrixLEDView, AviationGraphicComponents
 ├── Tests/
 │   └── KaruCoreTests/                    # Comprehensive unit tests
-│       ├── TransitEngineTests.swift      # Velocity, efficiency, incident tracking tests
+│       ├── TransitEngineTests.swift      # Velocity (540 kts), efficiency, turbulence logs
 │       ├── AppClassifierTests.swift      # Bundle ID matching, overrides & preset tests
 │       ├── LocalStorageTests.swift       # Atomic persistence & crash-resilience tests
 │       ├── AudioEngineTests.swift        # Soundscape lifecycle & crossfade tests
 │       └── ModelTests.swift              # Serialization & domain model logic tests
-└── docs/                                 # PRD, Specifications, and Architecture Decision Records
+└── docs/                                 # PRD, Specifications, and Architecture Decision Records (ADR-001 - ADR-012)
 ```
-
----
-
-## ❓ Confusion Management & Escalation
-1. **Ambiguous Requirements:** Stop and surface options with clear trade-offs before proceeding.
-2. **Notch vs Non-Notch Geometry:** Always verify `screen.auxiliaryTopLeftArea != nil` before rendering Notch Wings; gracefully fall back to Menu Bar / Floating Pill / Sidebar.
-3. **AppKit vs SwiftUI Boundaries:** UI components belong in SwiftUI; window levels, screen attachment, and menu bar lifecycle belong in AppKit controllers.
-
