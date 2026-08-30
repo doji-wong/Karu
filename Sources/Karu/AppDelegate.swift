@@ -48,6 +48,16 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         menuBar.onOpenGarage = { [weak self] in self?.openGarageWindow() }
         menuBar.onOpenSettings = { [weak self] in self?.openSettingsWindow() }
         menuBar.onOpenLogbook = { [weak self] in self?.openLogbookWindow() }
+        menuBar.onPopoverDismissed = { [weak self] in
+            Task { @MainActor in
+                guard let self = self else { return }
+                if self.transitEngine.state == .cruising ||
+                   self.transitEngine.state == .trafficStalled ||
+                   self.transitEngine.state == .pitStop {
+                    self.floatingHUDPanel?.showFloating(force: false)
+                }
+            }
+        }
         self.menuBarController = menuBar
 
         // Initialize Notch Wings
@@ -68,10 +78,21 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         distractionMonitor.start()
 
-        // Wire Transit State Changes to Audio and Storage
-        transitEngine.onStateChanged = { [weak self] _, newState in
+        // Wire Transit State Changes to Audio, Storage, and HUD Visibility
+        transitEngine.onStateChanged = { [weak self] oldState, newState in
             Task { @MainActor in
-                self?.audioEngine.updateState(newState)
+                guard let self = self else { return }
+                self.audioEngine.updateState(newState)
+
+                if oldState == .idle && newState == .cruising {
+                    // Flight started! Dismiss menu dropdown and show floating minimalist HUD automatically
+                    self.menuBarController?.hidePopover()
+                    self.floatingHUDPanel?.resetSuppression()
+                    self.floatingHUDPanel?.showFloating(force: true)
+                } else if newState == .completed || newState == .idle {
+                    // Flight ended or aborted! Automatically hide floating HUD
+                    self.floatingHUDPanel?.hideFloating()
+                }
             }
         }
 

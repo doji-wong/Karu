@@ -9,6 +9,8 @@ public final class MenuBarPanel: NSPanel {
     private var globalMonitor: Any?
     private var localMonitor: Any?
 
+    public var onDidHide: (() -> Void)?
+
     public init(contentView: NSView) {
         super.init(
             contentRect: NSRect(x: 0, y: 0, width: 372, height: 156),
@@ -46,6 +48,7 @@ public final class MenuBarPanel: NSPanel {
     public func hide() {
         self.orderOut(nil)
         stopMonitoring()
+        onDidHide?()
     }
 
     private func startMonitoring(buttonWindow: NSWindow) {
@@ -86,6 +89,7 @@ public final class MenuBarController: NSObject {
     public var onOpenGarage: (() -> Void)?
     public var onOpenSettings: (() -> Void)?
     public var onOpenLogbook: (() -> Void)?
+    public var onPopoverDismissed: (() -> Void)?
 
     public init(
         engine: TransitEngine,
@@ -142,7 +146,15 @@ public final class MenuBarController: NSObject {
         hostingView.layer?.allowsEdgeAntialiasing = true
         hostingView.layer?.edgeAntialiasingMask = [.layerLeftEdge, .layerRightEdge, .layerTopEdge, .layerBottomEdge]
         
-        self.menuBarPanel = MenuBarPanel(contentView: hostingView)
+        let panel = MenuBarPanel(contentView: hostingView)
+        panel.onDidHide = { [weak self] in
+            self?.onPopoverDismissed?()
+        }
+        self.menuBarPanel = panel
+    }
+
+    public func hidePopover() {
+        menuBarPanel?.hide()
     }
 
     private func observeEngine() {
