@@ -83,7 +83,6 @@ public final class MenuBarController: NSObject {
     private let audioEngine: AudioEngine
     private let storage: LocalStorageManager
     
-    public var onToggleSidebarHUD: (() -> Void)?
     public var onToggleFloatingHUD: (() -> Void)?
     public var onOpenGarage: (() -> Void)?
     public var onOpenSettings: (() -> Void)?
@@ -123,10 +122,6 @@ public final class MenuBarController: NSObject {
             scratchpadStore: scratchpadStore,
             audioEngine: audioEngine,
             storage: storage,
-            onToggleSidebarHUD: { [weak self] in 
-                self?.menuBarPanel?.hide()
-                self?.onToggleSidebarHUD?() 
-            },
             onToggleFloatingHUD: { [weak self] in 
                 self?.menuBarPanel?.hide()
                 self?.onToggleFloatingHUD?() 

@@ -11,11 +11,6 @@ struct KaruApp: App {
         }
         .commands {
             CommandMenu("Karu") {
-                Button("Toggle Sidebar HUD") {
-                    appDelegate.toggleSidebarHUD()
-                }
-                .keyboardShortcut("s", modifiers: [.command, .shift])
-
                 Button("Toggle Floating HUD") {
                     appDelegate.toggleFloatingHUD()
                 }

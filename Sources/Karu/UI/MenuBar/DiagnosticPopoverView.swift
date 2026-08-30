@@ -7,7 +7,6 @@ public struct DiagnosticPopoverView: View {
     @Bindable public var scratchpadStore: ScratchpadStore
     public var audioEngine: AudioEngine
     public var storage: LocalStorageManager
-    public var onToggleSidebarHUD: (() -> Void)?
     public var onToggleFloatingHUD: (() -> Void)?
     public var onOpenGarage: (() -> Void)?
     public var onOpenSettings: (() -> Void)?
@@ -17,7 +16,6 @@ public struct DiagnosticPopoverView: View {
         scratchpadStore: ScratchpadStore,
         audioEngine: AudioEngine,
         storage: LocalStorageManager,
-        onToggleSidebarHUD: (() -> Void)? = nil,
         onToggleFloatingHUD: (() -> Void)? = nil,
         onOpenGarage: (() -> Void)? = nil,
         onOpenSettings: (() -> Void)? = nil
@@ -26,7 +24,6 @@ public struct DiagnosticPopoverView: View {
         self.scratchpadStore = scratchpadStore
         self.audioEngine = audioEngine
         self.storage = storage
-        self.onToggleSidebarHUD = onToggleSidebarHUD
         self.onToggleFloatingHUD = onToggleFloatingHUD
         self.onOpenGarage = onOpenGarage
         self.onOpenSettings = onOpenSettings
