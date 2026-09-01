@@ -33,8 +33,8 @@
 
 ## Project Structure
 - `Sources/KaruCore/Core/`: `TransitEngine.swift`, `DistractionMonitor.swift`, `AppClassifier.swift`, `AudioEngine.swift`
-- `Sources/KaruCore/Models/`: `TransitState.swift`, `TripSession.swift`, `Habit.swift`, `VehicleProfile.swift`, `AppFilterRule.swift`
+- `Sources/KaruCore/Models/`: `TransitState.swift`, `TripSession.swift`, `Habit.swift`, `VehicleProfile.swift`, `AppFilterRule.swift`, `WidgetTelemetrySnapshot.swift`
 - `Sources/KaruCore/Storage/`: `LocalStorageManager.swift`
 - `Sources/Karu/`: `KaruApp.swift`, `AppDelegate.swift`
-- `Sources/Karu/UI/`: `MenuBar/`, `Notch/`, `FloatingHUD/`, `Aviation/`, `Logbook/`, `Garage/`, `Settings/`, `Theme/`
-- `Tests/KaruCoreTests/`: `TransitEngineTests.swift`, `AppClassifierTests.swift`, `LocalStorageTests.swift`, `AudioEngineTests.swift`, `ModelTests.swift`
+- `Sources/Karu/UI/`: `MenuBar/`, `Notch/`, `FloatingHUD/`, `Aviation/`, `Widgets/`, `Logbook/`, `Garage/`, `Settings/`, `Theme/`
+- `Tests/KaruCoreTests/`: `TransitEngineTests.swift`, `AppClassifierTests.swift`, `LocalStorageTests.swift`, `AudioEngineTests.swift`, `ModelTests.swift`, `WidgetTelemetryTests.swift`

@@ -33,6 +33,7 @@ public final class LocalStorageManager: @unchecked Sendable {
     public var tripsFileURL: URL { baseDirectory.appendingPathComponent("trip_history.json") }
     public var filtersFileURL: URL { baseDirectory.appendingPathComponent("app_filters.json") }
     public var vehicleFileURL: URL { baseDirectory.appendingPathComponent("vehicle_profile.json") }
+    public var widgetSnapshotFileURL: URL { baseDirectory.appendingPathComponent("widget_snapshot.json") }
 
     // MARK: - Generic Atomic Read/Write
 
@@ -100,6 +101,14 @@ public final class LocalStorageManager: @unchecked Sendable {
 
     public func loadVehicleProfile() -> VehicleProfile {
         load(from: vehicleFileURL, defaultValue: VehicleProfile())
+    }
+
+    public func saveWidgetSnapshot(_ snapshot: WidgetTelemetrySnapshot) throws {
+        try save(snapshot, to: widgetSnapshotFileURL)
+    }
+
+    public func loadWidgetSnapshot() -> WidgetTelemetrySnapshot {
+        load(from: widgetSnapshotFileURL, defaultValue: .idleMock)
     }
 
     // MARK: - Directory Management

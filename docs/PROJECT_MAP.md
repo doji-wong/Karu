@@ -18,11 +18,12 @@ Use this map to selectively load context when working on specific features.
 - **`Habit.swift`**: Focus habit track definitions, streak counts, daily goal durations, and lifetime flight stats.
 - **`VehicleProfile.swift`**: Aircraft fleet selection (`a350F`, `b787Dreamliner`, `concordeSST`, `gulfstreamG650`, `cessna172`), audio profile references, and sound configuration.
 - **`AppFilterRule.swift`**: Bundle identifier rules, `AppFocusCategory`, and curated presets (`developer`, `student`, `writer`).
+- **`WidgetTelemetrySnapshot.swift`**: Immutable, curated 12-field telemetry contract for Desktop and Notification Center widgets.
 
 ---
 
 ## 3. Storage & Local Persistence (`Sources/KaruCore/Storage/`)
-- **`LocalStorageManager.swift`**: Handles 100% local atomic JSON persistence in `~/Library/Application Support/Karu/` (`trips.json`, `habits.json`, `rules.json`, `vehicle.json`) with corrupted data fallback recovery.
+- **`LocalStorageManager.swift`**: Handles 100% local atomic JSON persistence in `~/Library/Application Support/Karu/` (`trips.json`, `habits.json`, `rules.json`, `vehicle.json`, `widget_snapshot.json`) with corrupted data fallback recovery.
 
 ---
 
@@ -41,6 +42,12 @@ Use this map to selectively load context when working on specific features.
   - `OrbitingTicketPopoutView.swift`: 3D cutout pop-out orbiting boarding pass ticket with interactive tear-off and seat picker.
   - `DotMatrixLEDView.swift`: Dot matrix typography and route arrow renderers.
   - `AviationGraphicComponents.swift`: Luminous slider track, avionics ETA pod, and telemetry gauges.
+- **`Widgets/`**:
+  - `SmallAirspeedGaugeWidgetView.swift`: Direction A Small Widget (`systemSmall`) with circular quota progress ring and 540 kts speedometer.
+  - `MediumFlightDispatchWidgetView.swift`: Direction A Medium Widget (`systemMedium`) split dispatch board with daily flight log and 1-click takeoff button.
+  - `FlightTelemetryTimelineProvider.swift`: WidgetKit `TimelineProvider` loading atomic snapshots.
+  - `WidgetIntents.swift`: macOS 14+ `AppIntent` handlers (`TakeoffIntent`, `GateHoldIntent`).
+  - `WidgetSimulatorView.swift`: In-App Desktop Widget Simulator & Preview window (`Cmd + Shift + W`).
 - **`Logbook/`**:
   - `LogbookView.swift`: Dedicated Pilot's Flight Logbook window (`Cmd + L`) tracking total focus flight hours, distance flown (`NM`), touchdowns, fleet on-time efficiency, and historical session logs.
 - **`Garage/`**:
@@ -53,8 +60,8 @@ Use this map to selectively load context when working on specific features.
 ---
 
 ## 5. Application Lifecycle (`Sources/Karu/`)
-- **`KaruApp.swift`**: SwiftUI app entry point, system menu commands (`Cmd + L`, `Cmd + Shift + F`, `Cmd + Shift + G`, `Cmd + ,`).
-- **`AppDelegate.swift`**: `NSApplicationDelegate` coordinator wiring engines, window controllers, and notifications.
+- **`KaruApp.swift`**: SwiftUI app entry point, system menu commands (`Cmd + L`, `Cmd + Shift + F`, `Cmd + Shift + G`, `Cmd + Shift + W`, `Cmd + ,`).
+- **`AppDelegate.swift`**: `NSApplicationDelegate` coordinator wiring engines, window controllers, widget exporter, and notifications.
 
 ---
 
@@ -64,11 +71,13 @@ Use this map to selectively load context when working on specific features.
 - **`LocalStorageTests.swift`**: Atomic writes, disk recovery, habit streaks, and trip session serialization.
 - **`AudioEngineTests.swift`**: Volume ramp crossfading, audio lifecycle, and mute controls.
 - **`ModelTests.swift`**: Codable compliance and domain model math verification.
+- **`WidgetTelemetryTests.swift`**: Snapshot serialization roundtrips, presentation math, atomic saving, and corrupted fallback recovery.
 
 ---
 
 ## 7. Documentation & Decision Records (`docs/`)
 - [PRD.md](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/PRD.md): Product requirements, personas, and feature specifications.
 - [SPEC.md](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/SPEC.md): Technical specification and architectural guidelines.
+- [SPEC-widget.md](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/SPEC-widget.md): Desktop flight telemetry widget specification.
 - [CAPABILITY_MAP.md](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/CAPABILITY_MAP.md): Decoupled module boundaries and dependency graphs.
-- [ADRs](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/decisions/): Architecture Decision Records covering ADR-001 through ADR-012.
+- [ADRs](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/decisions/): Architecture Decision Records covering ADR-001 through ADR-013.

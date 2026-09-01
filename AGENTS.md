@@ -116,6 +116,7 @@ Karu/
 │           ├── Notch/                    # NotchWindowController & NotchWingsView
 │           ├── FloatingHUD/              # FloatingHUDPanel & FloatingHUDView
 │           ├── Aviation/                 # FocusFlightCard, OrbitingTicketPopoutView, DotMatrixLEDView, AviationGraphicComponents
+│           ├── Widgets/                  # SmallAirspeedGauge, MediumFlightDispatch, TimelineProvider, Simulator
 │           ├── Logbook/                  # LogbookView (Pilot's Flight Logbook - Cmd + L)
 │           ├── Garage/                   # GarageHangarView (Aircraft fleet & audio picker)
 │           ├── Settings/                 # AppFilterSettingsView (1-Click App Radar & Rules)
@@ -126,6 +127,7 @@ Karu/
 │       ├── AppClassifierTests.swift      # Bundle ID matching, overrides & preset tests
 │       ├── LocalStorageTests.swift       # Atomic persistence & crash-resilience tests
 │       ├── AudioEngineTests.swift        # Soundscape lifecycle & crossfade tests
-│       └── ModelTests.swift              # Serialization & domain model logic tests
-└── docs/                                 # PRD, Specifications, and Architecture Decision Records (ADR-001 - ADR-012)
+│       ├── ModelTests.swift              # Serialization & domain model logic tests
+│       └── WidgetTelemetryTests.swift    # Snapshot persistence, serialization & math tests
+└── docs/                                 # PRD, Specifications, and Architecture Decision Records (ADR-001 - ADR-013)
 ```

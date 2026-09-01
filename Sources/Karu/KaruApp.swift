@@ -28,6 +28,11 @@ struct KaruApp: App {
                 }
                 .keyboardShortcut("g", modifiers: [.command, .shift])
 
+                Button("Desktop Widgets Simulator") {
+                    appDelegate.openWidgetSimulatorWindow()
+                }
+                .keyboardShortcut("w", modifiers: [.command, .shift])
+
                 Button("Preferences & Rules...") {
                     appDelegate.openSettingsWindow()
                 }

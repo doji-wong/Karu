@@ -21,6 +21,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var garageWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var logbookWindow: NSWindow?
+    private var widgetSimulatorWindow: NSWindow?
 
     public override init() {
         let storage = LocalStorageManager()
@@ -84,6 +85,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let self = self else { return }
                 self.audioEngine.updateState(newState)
                 self.menuBarController?.updateStatusItemVisuals()
+                self.exportWidgetSnapshot()
 
                 let destCity = DestinationAirport.find(code: self.transitEngine.activeDestination).cityName
                 let seatCode = self.transitEngine.activeSeatCode
@@ -119,10 +121,39 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         transitEngine.onTripCompleted = { [weak self] completedSession in
             Task { @MainActor in
                 try? self?.storage.appendTripSession(completedSession)
+                self?.exportWidgetSnapshot()
             }
         }
 
-        print("[Karu] Cockpit & Focus Flight Engine initialized successfully.")
+        // Listen for Widget AppIntent triggers
+        NotificationCenter.default.addObserver(forName: .karuWidgetDidRequestTakeoff, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                if self?.transitEngine.state == .idle {
+                    self?.transitEngine.startFlight()
+                } else if self?.transitEngine.state == .pitStop {
+                    self?.transitEngine.resumeFromGateHold()
+                }
+            }
+        }
+
+        NotificationCenter.default.addObserver(forName: .karuWidgetDidRequestGateHold, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                self?.transitEngine.enterGateHold()
+            }
+        }
+
+        // Export initial snapshot on startup
+        exportWidgetSnapshot()
+
+        print("[Karu] Cockpit, Widget Exporter & Focus Flight Engine initialized successfully.")
+    }
+
+    public func exportWidgetSnapshot() {
+        let habits = storage.loadHabits()
+        let trips = storage.loadTripHistory()
+        let todayTrips = trips.filter { Calendar.current.isDateInToday($0.startDate) }
+        let snapshot = transitEngine.generateWidgetSnapshot(dailyHabits: habits, todayTrips: todayTrips)
+        try? storage.saveWidgetSnapshot(snapshot)
     }
 
     public func applicationWillTerminate(_ notification: Notification) {
@@ -194,6 +225,24 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self.logbookWindow = window
         }
         logbookWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    public func openWidgetSimulatorWindow() {
+        if widgetSimulatorWindow == nil {
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 580, height: 560),
+                styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                backing: .buffered,
+                defer: false
+            )
+            window.title = "Avionics Desktop Widget Simulator"
+            window.center()
+            let simulatorView = WidgetSimulatorView(engine: transitEngine)
+            window.contentView = NSHostingView(rootView: simulatorView)
+            self.widgetSimulatorWindow = window
+        }
+        widgetSimulatorWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 }

@@ -52,4 +52,15 @@ This plan outlines the sequenced execution phases for Karu, establishing clear v
   - 1-Click Running App Radar in Preferences (`AppFilterSettingsView.swift`)
   - Aircraft Fleet Hangar (`GarageHangarView.swift`)
   - App Entry Bridge (`KaruApp.swift`, `AppDelegate.swift`)
-- **Verification Gate:** `swift build -Xswiftc -warnings-as-errors` passes; `swift test` 25/25 tests pass.
+- **Verification Gate:** `swift build -Xswiftc -warnings-as-errors` passes; `swift test` passes 31/31 tests.
+
+---
+
+## Phase 8: Desktop Flight Telemetry Widgets (`widget-telemetry`) — [IN PROGRESS]
+- **Deliverables:**
+  - Data Contract & Snapshot Exporter (`WidgetTelemetrySnapshot.swift`, `LocalStorageManager+Widget.swift`)
+  - Direction A Small Airspeed Gauge & Quota Widget View (`SmallAirspeedGaugeWidgetView.swift`)
+  - Direction A Medium Flight Dispatch Board Widget View (`MediumFlightDispatchWidgetView.swift`)
+  - WidgetKit Timeline Provider & App Intents (`FlightTelemetryTimelineProvider.swift`, `WidgetIntents.swift`)
+- **Tests:** `WidgetTelemetryTests.swift` validating snapshot decoding, data export on state transitions, and fallback resilience.
+- **Verification Gate:** `swift build -Xswiftc -warnings-as-errors` and all unit tests pass.

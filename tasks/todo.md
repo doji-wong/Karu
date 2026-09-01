@@ -109,3 +109,36 @@
   - **Acceptance:** ADR-001 through ADR-012 recorded; SPEC.md, PRD.md, PROJECT_MAP.md, CAPABILITY_MAP.md updated.
 - [ ] **Task 7.3: Distribution Packaging (.app bundle)**
   - **Acceptance:** Application bundle packaging and asset catalog setup.
+
+---
+
+## Phase 8: Desktop Flight Telemetry Widgets (`widget-telemetry`)
+- [x] **Task 8.1: Implement `WidgetTelemetrySnapshot` Domain Model**
+  - **Acceptance:** `WidgetTelemetrySnapshot.swift` conforms to `Codable`, `Sendable`, `Equatable`, encapsulating state, airspeed, route, distance, efficiency %, daily quota, streak, and aircraft profile.
+  - **Verify:** `swift test --filter WidgetTelemetryTests`
+  - **Files:** `Sources/KaruCore/Models/WidgetTelemetrySnapshot.swift`
+- [x] **Task 8.2: Implement Local Storage Snapshot Exporter in `KaruCore`**
+  - **Acceptance:** `LocalStorageManager` supports `saveWidgetSnapshot(_:)` and `loadWidgetSnapshot()` with atomic persistence and fallback recovery.
+  - **Verify:** `swift test --filter WidgetTelemetryTests`
+  - **Files:** `Sources/KaruCore/Storage/LocalStorageManager.swift`
+- [x] **Task 8.3: Write `WidgetTelemetryTests` Suite**
+  - **Acceptance:** Unit tests verify snapshot creation, serialization roundtrip, and corrupted JSON fallback.
+  - **Verify:** `swift test --filter WidgetTelemetryTests`
+  - **Files:** `Tests/KaruCoreTests/WidgetTelemetryTests.swift`
+- [x] **Task 8.4: Implement Direction A Small Airspeed Gauge Widget (`SmallAirspeedGaugeWidgetView`)**
+  - **Acceptance:** Renders circular progress ring (`dailyCompletedMinutes / dailyGoalMinutes`), prominent `540 KTS` airspeed readout, streak badge (`🔥 12d`), and aircraft badge (`A350F`) in `#08080A` carbon matte aesthetic.
+  - **Verify:** `swift build`
+  - **Files:** `Sources/Karu/UI/Widgets/SmallAirspeedGaugeWidgetView.swift`
+- [x] **Task 8.5: Implement Direction A Medium Flight Dispatch Board Widget (`MediumFlightDispatchWidgetView`)**
+  - **Acceptance:** Renders dual-column avionics terminal: Left pane displays Today's Flight Log (Hours, NM, Efficiency %, Goal bar); Right pane displays Route (`SFO ✈ HND`), status badge (`CRUISING 540 kts`), and 1-Click Takeoff button.
+  - **Verify:** `swift build`
+  - **Files:** `Sources/Karu/UI/Widgets/MediumFlightDispatchWidgetView.swift`
+- [x] **Task 8.6: Implement Timeline Provider & App Intents & In-App Simulator**
+  - **Acceptance:** `FlightTelemetryTimelineProvider.swift`, `WidgetIntents.swift`, and `WidgetSimulatorView.swift` provide TimelineProvider, AppIntents for 1-click takeoff and gate hold, and in-app simulator (`Cmd + Shift + W`).
+  - **Verify:** `swift build`
+  - **Files:** `Sources/Karu/UI/Widgets/FlightTelemetryTimelineProvider.swift`, `Sources/Karu/UI/Widgets/WidgetIntents.swift`, `Sources/Karu/UI/Widgets/WidgetSimulatorView.swift`
+- [x] **Task 8.7: Wire Engine State Transitions to Snapshot Exporter & Full Verification**
+  - **Acceptance:** Engine state transitions automatically update `widget_snapshot.json`; `swift build -Xswiftc -warnings-as-errors` and all 35 tests pass cleanly.
+  - **Verify:** `swift test && swift build -Xswiftc -warnings-as-errors`
+  - **Files:** `Sources/Karu/AppDelegate.swift`, `Sources/KaruCore/Core/TransitEngine.swift`
+

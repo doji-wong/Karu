@@ -283,6 +283,87 @@ public final class TransitEngine {
         }
     }
 
+    // MARK: - Widget Telemetry & Control Helpers
+
+    /// Start standard flight with current origin, destination, seat, and aircraft.
+    public func startFlight() {
+        startTrip(
+            preset: .sprint25,
+            customDuration: nil,
+            habit: currentHabit,
+            aircraft: activeAircraft,
+            origin: activeOrigin,
+            destination: activeDestination,
+            seatCode: activeSeatCode,
+            taskTitle: activeTaskTitle,
+            seatIcon: activeSeatIcon
+        )
+    }
+
+    /// Enter gate hold / pause if in-flight.
+    public func enterGateHold() {
+        if state == .cruising || state == .trafficStalled {
+            toggleGateHold()
+        }
+    }
+
+    /// Resume from gate hold / pause.
+    public func resumeFromGateHold() {
+        if state == .pitStop {
+            toggleGateHold()
+        }
+    }
+
+    /// Generate an immutable, curated WidgetTelemetrySnapshot from active state and historical logs.
+    public func generateWidgetSnapshot(
+        dailyHabits: [Habit] = [],
+        todayTrips: [TripSession] = []
+    ) -> WidgetTelemetrySnapshot {
+        let originCity = DestinationAirport.find(code: activeOrigin).cityName
+        let destinationCity = DestinationAirport.find(code: activeDestination).cityName
+
+        let completedMins = todayTrips.reduce(0) { $0 + Int($1.cruisingDuration / 60) } + Int((activeSession?.cruisingDuration ?? 0) / 60)
+        let goalMins = currentHabit?.targetDailyMinutes ?? dailyHabits.first?.targetDailyMinutes ?? 300
+        let distanceNM = todayTrips.reduce(0.0) { $0 + $1.distanceTraveledNM } + (activeSession?.distanceTraveledNM ?? 0.0)
+        
+        let totalCruising = todayTrips.reduce(0.0) { $0 + $1.cruisingDuration } + (activeSession?.cruisingDuration ?? 0.0)
+        let totalStalled = todayTrips.reduce(0.0) { $0 + $1.stalledDuration } + (activeSession?.stalledDuration ?? 0.0)
+        let totalDuration = totalCruising + totalStalled
+        let efficiency = totalDuration > 0 ? (totalCruising / totalDuration) * 100.0 : 100.0
+        let streak = currentHabit?.currentStreakDays ?? dailyHabits.first?.currentStreakDays ?? 0
+
+        let badge: String
+        switch state {
+        case .cruising:
+            badge = "CRUISING \(Int(currentVelocity)) KTS"
+        case .trafficStalled:
+            badge = "TURBULENCE STALL"
+        case .pitStop:
+            badge = "GATE HOLD"
+        case .completed:
+            badge = "TOUCHDOWN"
+        case .idle:
+            badge = "GATE STANDBY"
+        }
+
+        return WidgetTelemetrySnapshot(
+            state: state,
+            currentAirspeedKts: Int(currentVelocity),
+            originIATA: activeOrigin,
+            originCity: originCity,
+            destinationIATA: activeDestination,
+            destinationCity: destinationCity,
+            statusBadgeText: badge,
+            dailyCompletedMinutes: completedMins,
+            dailyGoalMinutes: goalMins,
+            dailyDistanceNM: distanceNM,
+            dailyEfficiencyPercentage: efficiency,
+            currentStreakDays: streak,
+            activeAircraftName: activeAircraft.aircraftCode,
+            lastUpdated: Date()
+        )
+    }
+
     private func startTimer() {
         stopTimer()
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
