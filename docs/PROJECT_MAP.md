@@ -38,6 +38,9 @@ Use this map to selectively load context when working on specific features.
   - `FloatingHUDView.swift`: Floating HUD container with hover actions.
 - **`Aviation/`**:
   - `FocusFlightCard.swift`: Direction A luxury monochrome carbon matte boarding pass card with dual airport selection, ETA pod, luminous progress track, quick mute, and inline accordion slide drawers for airport and seat class selection.
+  - `OrbitingTicketPopoutView.swift`: 3D cutout pop-out orbiting boarding pass ticket with interactive tear-off and seat picker.
+  - `DotMatrixLEDView.swift`: Dot matrix typography and route arrow renderers.
+  - `AviationGraphicComponents.swift`: Luminous slider track, avionics ETA pod, and telemetry gauges.
 - **`Logbook/`**:
   - `LogbookView.swift`: Dedicated Pilot's Flight Logbook window (`Cmd + L`) tracking total focus flight hours, distance flown (`NM`), touchdowns, fleet on-time efficiency, and historical session logs.
 - **`Garage/`**:
@@ -46,8 +49,6 @@ Use this map to selectively load context when working on specific features.
   - `AppFilterSettingsView.swift`: 1-Click Running App Radar (scans active apps with native icons) and rule manager.
 - **`Theme/`**:
   - `KaruTheme.swift`: Dark carbon matte tokens (`#08080A`, `#151518`), typography, and corner radiuses.
-  - `DotMatrixLEDView.swift`: Dot matrix typography and route arrow renderers.
-  - `AviationGraphicComponents.swift`: Luminous slider track, avionics ETA pod, and telemetry gauges.
 
 ---
 

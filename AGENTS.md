@@ -115,11 +115,11 @@ Karu/
 │           ├── MenuBar/                  # MenuBarController & DiagnosticPopoverView
 │           ├── Notch/                    # NotchWindowController & NotchWingsView
 │           ├── FloatingHUD/              # FloatingHUDPanel & FloatingHUDView
-│           ├── Aviation/                 # FocusFlightCard (Boarding Pass & Inline Drawers)
+│           ├── Aviation/                 # FocusFlightCard, OrbitingTicketPopoutView, DotMatrixLEDView, AviationGraphicComponents
 │           ├── Logbook/                  # LogbookView (Pilot's Flight Logbook - Cmd + L)
 │           ├── Garage/                   # GarageHangarView (Aircraft fleet & audio picker)
 │           ├── Settings/                 # AppFilterSettingsView (1-Click App Radar & Rules)
-│           └── Theme/                    # KaruTheme, DotMatrixLEDView, AviationGraphicComponents
+│           └── Theme/                    # KaruTheme (Design tokens, palette & typography)
 ├── Tests/
 │   └── KaruCoreTests/                    # Comprehensive unit tests
 │       ├── TransitEngineTests.swift      # Velocity (540 kts), efficiency, turbulence logs

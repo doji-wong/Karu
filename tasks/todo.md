@@ -104,7 +104,7 @@
 
 ## Phase 7: Quality Verification & Release Readiness (`quality-and-release`)
 - [x] **Task 7.1: Strict Compilation & Test Verification**
-  - **Acceptance:** `swift build -Xswiftc -warnings-as-errors` passes with 0 warnings; `swift test` passes 25/25 tests.
+  - **Acceptance:** `swift build -Xswiftc -warnings-as-errors` passes with 0 warnings; `swift test` passes 31/31 tests.
 - [x] **Task 7.2: Documentation & ADR Updates**
   - **Acceptance:** ADR-001 through ADR-012 recorded; SPEC.md, PRD.md, PROJECT_MAP.md, CAPABILITY_MAP.md updated.
 - [ ] **Task 7.3: Distribution Packaging (.app bundle)**
