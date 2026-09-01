@@ -138,6 +138,7 @@ public final class MenuBarController: NSObject {
     public var onOpenGarage: (() -> Void)?
     public var onOpenSettings: (() -> Void)?
     public var onOpenLogbook: (() -> Void)?
+    public var onOpenWidgetSimulator: (() -> Void)?
     public var onPopoverDismissed: (() -> Void)?
 
     public init(
@@ -187,6 +188,10 @@ public final class MenuBarController: NSObject {
             onOpenLogbook: { [weak self] in 
                 self?.menuBarPanel?.hide()
                 self?.onOpenLogbook?() 
+            },
+            onOpenWidgetSimulator: { [weak self] in
+                self?.menuBarPanel?.hide()
+                self?.onOpenWidgetSimulator?()
             }
         )
 

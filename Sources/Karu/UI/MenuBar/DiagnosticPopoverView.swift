@@ -10,6 +10,7 @@ public struct DiagnosticPopoverView: View {
     public var onOpenGarage: (() -> Void)?
     public var onOpenSettings: (() -> Void)?
     public var onOpenLogbook: (() -> Void)?
+    public var onOpenWidgetSimulator: (() -> Void)?
 
     public init(
         engine: TransitEngine,
@@ -18,7 +19,8 @@ public struct DiagnosticPopoverView: View {
         onToggleFloatingHUD: (() -> Void)? = nil,
         onOpenGarage: (() -> Void)? = nil,
         onOpenSettings: (() -> Void)? = nil,
-        onOpenLogbook: (() -> Void)? = nil
+        onOpenLogbook: (() -> Void)? = nil,
+        onOpenWidgetSimulator: (() -> Void)? = nil
     ) {
         self.engine = engine
         self.audioEngine = audioEngine
@@ -27,6 +29,7 @@ public struct DiagnosticPopoverView: View {
         self.onOpenGarage = onOpenGarage
         self.onOpenSettings = onOpenSettings
         self.onOpenLogbook = onOpenLogbook
+        self.onOpenWidgetSimulator = onOpenWidgetSimulator
     }
 
     public var body: some View {
@@ -37,7 +40,8 @@ public struct DiagnosticPopoverView: View {
                 onToggleFloatingHUD: onToggleFloatingHUD,
                 onOpenGarage: onOpenGarage,
                 onOpenSettings: onOpenSettings,
-                onOpenLogbook: onOpenLogbook
+                onOpenLogbook: onOpenLogbook,
+                onOpenWidgetSimulator: onOpenWidgetSimulator
             )
             Spacer(minLength: 0)
         }

@@ -49,6 +49,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         menuBar.onOpenGarage = { [weak self] in self?.openGarageWindow() }
         menuBar.onOpenSettings = { [weak self] in self?.openSettingsWindow() }
         menuBar.onOpenLogbook = { [weak self] in self?.openLogbookWindow() }
+        menuBar.onOpenWidgetSimulator = { [weak self] in self?.openWidgetSimulatorWindow() }
         menuBar.onPopoverDismissed = { [weak self] in
             Task { @MainActor in
                 guard let self = self else { return }

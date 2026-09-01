@@ -21,6 +21,7 @@ public struct FocusFlightCard: View {
     public var onOpenGarage: (() -> Void)?
     public var onOpenSettings: (() -> Void)?
     public var onOpenLogbook: (() -> Void)?
+    public var onOpenWidgetSimulator: (() -> Void)?
     
     // Flight Route & Destination (Directly bound to engine)
     public var originAirport: DestinationAirport {
@@ -52,7 +53,8 @@ public struct FocusFlightCard: View {
         onToggleFloatingHUD: (() -> Void)? = nil,
         onOpenGarage: (() -> Void)? = nil,
         onOpenSettings: (() -> Void)? = nil,
-        onOpenLogbook: (() -> Void)? = nil
+        onOpenLogbook: (() -> Void)? = nil,
+        onOpenWidgetSimulator: (() -> Void)? = nil
     ) {
         self.engine = engine
         self.audioEngine = audioEngine
@@ -60,6 +62,7 @@ public struct FocusFlightCard: View {
         self.onOpenGarage = onOpenGarage
         self.onOpenSettings = onOpenSettings
         self.onOpenLogbook = onOpenLogbook
+        self.onOpenWidgetSimulator = onOpenWidgetSimulator
     }
     
     // MARK: - Seat & Mission Helpers
@@ -534,7 +537,18 @@ public struct FocusFlightCard: View {
                         .padding(3)
                 }
                 .buttonStyle(.plain)
-                .help("Pilot's Flight Logbook")
+                .help("Pilot's Flight Logbook (Cmd + L)")
+
+                Button {
+                    onOpenWidgetSimulator?()
+                } label: {
+                    Image(systemName: "square.grid.2x2")
+                        .font(.system(size: 8.5))
+                        .foregroundStyle(KaruTheme.textMuted)
+                        .padding(3)
+                }
+                .buttonStyle(.plain)
+                .help("Desktop Widgets Simulator (Cmd + Shift + W)")
 
                 Button {
                     onToggleFloatingHUD?()
