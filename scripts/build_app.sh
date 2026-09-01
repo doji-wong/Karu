@@ -71,9 +71,9 @@ if [ -f "${ROOT_DIR}/Packaging/AppIcon.icns" ]; then
     cp "${ROOT_DIR}/Packaging/AppIcon.icns" "${WIDGET_BUNDLE}/Contents/Resources/AppIcon.icns"
 fi
 
-# 4. Ad-Hoc Code Signing (Plugin first, then parent App)
+# 4. Ad-Hoc Code Signing (Plugin first with sandbox entitlements, then parent App)
 echo "🔏 Code-signing widget extension..."
-codesign --force --sign - "${WIDGET_BUNDLE}"
+codesign --force --sign - --entitlements "${ROOT_DIR}/Packaging/KaruWidgets.entitlements" "${WIDGET_BUNDLE}"
 
 echo "🔏 Code-signing application bundle..."
 codesign --force --deep --sign - "${APP_BUNDLE}"
