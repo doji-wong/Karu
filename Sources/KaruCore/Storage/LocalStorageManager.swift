@@ -9,6 +9,14 @@ public final class LocalStorageManager: @unchecked Sendable {
     private let decoder: JSONDecoder
     private let lock = NSLock()
 
+    // In-Memory Read Caches
+    private var cachedHabits: [Habit]?
+    private var cachedTripHistory: [TripSession]?
+    private var cachedCustomRules: [AppFilterRule]?
+    private var cachedVehicleProfile: VehicleProfile?
+    private var cachedWidgetSnapshot: WidgetTelemetrySnapshot?
+    private var cachedPreferences: KaruPreferences?
+
     /// Default production initializer pointing to ~/Library/Application Support/Karu/
     public init(baseDirectory: URL? = nil) {
         if let dir = baseDirectory {
@@ -64,22 +72,50 @@ public final class LocalStorageManager: @unchecked Sendable {
         }
     }
 
-    // MARK: - Entity Helpers
+    // MARK: - Entity Helpers with O(1) In-Memory Cache
 
     public func saveHabits(_ habits: [Habit]) throws {
+        lock.lock()
+        self.cachedHabits = habits
+        lock.unlock()
         try save(habits, to: habitsFileURL)
     }
 
     public func loadHabits() -> [Habit] {
-        load(from: habitsFileURL, defaultValue: [])
+        lock.lock()
+        if let cached = cachedHabits {
+            lock.unlock()
+            return cached
+        }
+        lock.unlock()
+
+        let loaded: [Habit] = load(from: habitsFileURL, defaultValue: [])
+        lock.lock()
+        self.cachedHabits = loaded
+        lock.unlock()
+        return loaded
     }
 
     public func saveTripHistory(_ trips: [TripSession]) throws {
+        lock.lock()
+        self.cachedTripHistory = trips
+        lock.unlock()
         try save(trips, to: tripsFileURL)
     }
 
     public func loadTripHistory() -> [TripSession] {
-        load(from: tripsFileURL, defaultValue: [])
+        lock.lock()
+        if let cached = cachedTripHistory {
+            lock.unlock()
+            return cached
+        }
+        lock.unlock()
+
+        let loaded: [TripSession] = load(from: tripsFileURL, defaultValue: [])
+        lock.lock()
+        self.cachedTripHistory = loaded
+        lock.unlock()
+        return loaded
     }
 
     public func appendTripSession(_ session: TripSession) throws {
@@ -89,35 +125,91 @@ public final class LocalStorageManager: @unchecked Sendable {
     }
 
     public func saveCustomRules(_ rules: [AppFilterRule]) throws {
+        lock.lock()
+        self.cachedCustomRules = rules
+        lock.unlock()
         try save(rules, to: filtersFileURL)
     }
 
     public func loadCustomRules() -> [AppFilterRule] {
-        load(from: filtersFileURL, defaultValue: [])
+        lock.lock()
+        if let cached = cachedCustomRules {
+            lock.unlock()
+            return cached
+        }
+        lock.unlock()
+
+        let loaded: [AppFilterRule] = load(from: filtersFileURL, defaultValue: [])
+        lock.lock()
+        self.cachedCustomRules = loaded
+        lock.unlock()
+        return loaded
     }
 
     public func saveVehicleProfile(_ profile: VehicleProfile) throws {
+        lock.lock()
+        self.cachedVehicleProfile = profile
+        lock.unlock()
         try save(profile, to: vehicleFileURL)
     }
 
     public func loadVehicleProfile() -> VehicleProfile {
-        load(from: vehicleFileURL, defaultValue: VehicleProfile())
+        lock.lock()
+        if let cached = cachedVehicleProfile {
+            lock.unlock()
+            return cached
+        }
+        lock.unlock()
+
+        let loaded: VehicleProfile = load(from: vehicleFileURL, defaultValue: VehicleProfile())
+        lock.lock()
+        self.cachedVehicleProfile = loaded
+        lock.unlock()
+        return loaded
     }
 
     public func saveWidgetSnapshot(_ snapshot: WidgetTelemetrySnapshot) throws {
+        lock.lock()
+        self.cachedWidgetSnapshot = snapshot
+        lock.unlock()
         try save(snapshot, to: widgetSnapshotFileURL)
     }
 
     public func loadWidgetSnapshot() -> WidgetTelemetrySnapshot {
-        load(from: widgetSnapshotFileURL, defaultValue: .idleMock)
+        lock.lock()
+        if let cached = cachedWidgetSnapshot {
+            lock.unlock()
+            return cached
+        }
+        lock.unlock()
+
+        let loaded: WidgetTelemetrySnapshot = load(from: widgetSnapshotFileURL, defaultValue: .idleMock)
+        lock.lock()
+        self.cachedWidgetSnapshot = loaded
+        lock.unlock()
+        return loaded
     }
 
     public func savePreferences(_ preferences: KaruPreferences) throws {
+        lock.lock()
+        self.cachedPreferences = preferences
+        lock.unlock()
         try save(preferences, to: preferencesFileURL)
     }
 
     public func loadPreferences() -> KaruPreferences {
-        load(from: preferencesFileURL, defaultValue: KaruPreferences())
+        lock.lock()
+        if let cached = cachedPreferences {
+            lock.unlock()
+            return cached
+        }
+        lock.unlock()
+
+        let loaded: KaruPreferences = load(from: preferencesFileURL, defaultValue: KaruPreferences())
+        lock.lock()
+        self.cachedPreferences = loaded
+        lock.unlock()
+        return loaded
     }
 
     // MARK: - Directory Management

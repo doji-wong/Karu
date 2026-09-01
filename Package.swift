@@ -14,6 +14,10 @@ let package = Package(
         .executable(
             name: "Karu",
             targets: ["Karu"]
+        ),
+        .executable(
+            name: "KaruWidgets",
+            targets: ["KaruWidgets"]
         )
     ],
     dependencies: [],
@@ -24,6 +28,10 @@ let package = Package(
         ),
         .executableTarget(
             name: "Karu",
+            dependencies: ["KaruCore"]
+        ),
+        .executableTarget(
+            name: "KaruWidgets",
             dependencies: ["KaruCore"]
         ),
         .testTarget(

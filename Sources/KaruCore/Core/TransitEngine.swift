@@ -366,11 +366,14 @@ public final class TransitEngine {
 
     private func startTimer() {
         stopTimer()
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        let t = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.tick(seconds: 1.0)
             }
         }
+        t.tolerance = 0.1 // 100ms tolerance allows macOS kernel to coalesce wakeups, optimizing battery efficiency
+        RunLoop.main.add(t, forMode: .common)
+        self.timer = t
     }
 
     private func stopTimer() {

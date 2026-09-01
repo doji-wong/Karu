@@ -50,8 +50,8 @@ public final class AppClassifier: @unchecked Sendable {
     public func setPreset(_ preset: FocusPreset) {
         lock.lock()
         self.activePreset = preset
+        _rebuildCacheLocked()
         lock.unlock()
-        rebuildCache()
     }
 
     /// Add or update a custom rule override for a bundle identifier.
@@ -60,16 +60,16 @@ public final class AppClassifier: @unchecked Sendable {
         var updated = rule
         updated.isCustomOverride = true
         customRules[rule.bundleIdentifier] = updated
+        _rebuildCacheLocked()
         lock.unlock()
-        rebuildCache()
     }
 
     /// Remove a custom rule override.
     public func removeCustomRule(bundleIdentifier: String) {
         lock.lock()
         customRules.removeValue(forKey: bundleIdentifier)
+        _rebuildCacheLocked()
         lock.unlock()
-        rebuildCache()
     }
 
     /// Export all current active rules (presets + overrides).
@@ -90,10 +90,13 @@ public final class AppClassifier: @unchecked Sendable {
 
     // MARK: - Internal Helpers
 
-    private func rebuildCache() {
+    public func rebuildCache() {
         lock.lock()
         defer { lock.unlock() }
+        _rebuildCacheLocked()
+    }
 
+    private func _rebuildCacheLocked() {
         var newCache: [String: AppFocusCategory] = [:]
 
         // Populate from active preset

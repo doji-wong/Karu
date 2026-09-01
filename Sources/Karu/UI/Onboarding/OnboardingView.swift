@@ -518,7 +518,8 @@ public struct OnboardingView: View {
             .compactMap { app -> RunningAppItem? in
                 guard let bundleId = app.bundleIdentifier, let name = app.localizedName else { return nil }
                 let category = customizedRules[bundleId] ?? ruleMap[bundleId]
-                return RunningAppItem(id: bundleId, localizedName: name, icon: app.icon, category: category)
+                let icon = AppIconThumbnailCache.thumbnail(for: app)
+                return RunningAppItem(id: bundleId, localizedName: name, icon: icon, category: category)
             }
             .sorted { $0.localizedName.localizedCaseInsensitiveCompare($1.localizedName) == .orderedAscending }
     }

@@ -75,61 +75,76 @@ public final class AudioEngine {
 
     // MARK: - Lifecycle Controls
 
-    /// Start ambient in-flight audio engine playback.
+    /// Start ambient in-flight audio engine playback on demand.
     public func start() {
         guard !isRunning else { return }
 
-        do {
-            if !engine.isRunning {
-                try engine.start()
-            }
-            isRunning = true
+        isRunning = true
+        if !isMuted && (currentTransitState == .cruising || currentTransitState == .trafficStalled) {
+            ensureEngineRunning()
             scheduleLoops()
             updateState(currentTransitState, animated: false)
-        } catch {
-            print("[FocusFlightAudio] Failed to start AVAudioEngine: \(error)")
         }
     }
 
-    /// Stop ambient audio engine playback.
+    /// Stop ambient audio engine playback and enter low-power sleep state.
     public func stop() {
         guard isRunning else { return }
         isRunning = false
         crossfadeTask?.cancel()
+        crossfadeTask = nil
         cruisePlayerNode.stop()
         stallPlayerNode.stop()
         chimePlayerNode.stop()
         if speechSynthesizer.isSpeaking {
             speechSynthesizer.stopSpeaking(at: .immediate)
         }
-        engine.stop()
+        if engine.isRunning {
+            engine.stop()
+        }
     }
 
     /// Mute / unmute audio output.
     public func toggleMute() {
         isMuted.toggle()
         updateMixerVolume()
-        if isMuted && speechSynthesizer.isSpeaking {
-            speechSynthesizer.stopSpeaking(at: .immediate)
+        if isMuted {
+            if speechSynthesizer.isSpeaking {
+                speechSynthesizer.stopSpeaking(at: .immediate)
+            }
+            pauseEngineIfSilent()
+        } else if isRunning && (currentTransitState == .cruising || currentTransitState == .trafficStalled) {
+            ensureEngineRunning()
+            scheduleLoops()
+            updateState(currentTransitState, animated: true)
         }
     }
 
     public func setMuted(_ muted: Bool) {
         isMuted = muted
         updateMixerVolume()
-        if isMuted && speechSynthesizer.isSpeaking {
-            speechSynthesizer.stopSpeaking(at: .immediate)
+        if isMuted {
+            if speechSynthesizer.isSpeaking {
+                speechSynthesizer.stopSpeaking(at: .immediate)
+            }
+            pauseEngineIfSilent()
+        } else if isRunning && (currentTransitState == .cruising || currentTransitState == .trafficStalled) {
+            ensureEngineRunning()
+            scheduleLoops()
+            updateState(currentTransitState, animated: true)
         }
     }
 
     /// Play the classic dual-tone airplane seatbelt sign chime ("Ding-Dong").
     public func playSeatbeltChime() {
-        if !isRunning {
-            start()
-        }
-        guard isRunning, !isMuted, let chimeBuf = seatbeltChimeBuffer else { return }
+        guard !isMuted, let chimeBuf = seatbeltChimeBuffer else { return }
+        ensureEngineRunning()
         chimePlayerNode.stop()
-        chimePlayerNode.scheduleBuffer(chimeBuf, at: nil, options: [], completionHandler: nil)
+        chimePlayerNode.scheduleBuffer(chimeBuf, at: nil, options: []) { [weak self] in
+            Task { @MainActor in
+                self?.pauseEngineIfSilent()
+            }
+        }
         chimePlayerNode.play()
     }
 
@@ -198,15 +213,12 @@ public final class AudioEngine {
         let previousState = self.currentTransitState
         self.currentTransitState = state
 
-        if (state == .cruising || state == .trafficStalled) && !isRunning {
-            start()
-        }
-        guard isRunning else { return }
-
         // Play chime on entering turbulence or touchdown
         if (previousState == .cruising && state == .trafficStalled) || state == .completed {
             playSeatbeltChime()
         }
+
+        guard isRunning, !isMuted else { return }
 
         let targetCruiseVol: Float
         let targetStallVol: Float
@@ -215,9 +227,17 @@ public final class AudioEngine {
         case .cruising:
             targetCruiseVol = 1.0
             targetStallVol = 0.0
+            ensureEngineRunning()
+            if !cruisePlayerNode.isPlaying {
+                scheduleLoops()
+            }
         case .trafficStalled:
             targetCruiseVol = 0.0
             targetStallVol = 1.0
+            ensureEngineRunning()
+            if !stallPlayerNode.isPlaying {
+                scheduleLoops()
+            }
         case .idle, .pitStop, .completed:
             targetCruiseVol = 0.0
             targetStallVol = 0.0
@@ -228,6 +248,9 @@ public final class AudioEngine {
         } else {
             cruisePlayerNode.volume = targetCruiseVol
             stallPlayerNode.volume = targetStallVol
+            if targetCruiseVol == 0 && targetStallVol == 0 {
+                pauseEngineIfSilent()
+            }
         }
     }
 
@@ -235,7 +258,7 @@ public final class AudioEngine {
     public func setVehicle(_ vehicle: VehicleType) {
         self.currentVehicle = vehicle
         loadAircraftBuffers(for: vehicle)
-        if isRunning {
+        if isRunning && (currentTransitState == .cruising || currentTransitState == .trafficStalled) && !isMuted {
             scheduleLoops()
         }
     }
@@ -264,6 +287,9 @@ public final class AudioEngine {
                 self.cruisePlayerNode.volume = startCruise + (targetCruise - startCruise) * progress
                 self.stallPlayerNode.volume = startStall + (targetStall - startStall) * progress
             }
+            if targetCruise == 0.0 && targetStall == 0.0 {
+                self.pauseEngineIfSilent()
+            }
         }
     }
 
@@ -280,11 +306,32 @@ public final class AudioEngine {
         stallPlayerNode.play()
     }
 
+    private func ensureEngineRunning() {
+        if !engine.isRunning {
+            do {
+                try engine.start()
+            } catch {
+                print("[FocusFlightAudio] Failed to start AVAudioEngine: \(error)")
+            }
+        }
+    }
+
+    private func pauseEngineIfSilent() {
+        // If neither cruise nor stall has volume, and speech is not active, enter power-saving sleep
+        if cruisePlayerNode.volume == 0.0 && stallPlayerNode.volume == 0.0 && !speechSynthesizer.isSpeaking && !chimePlayerNode.isPlaying {
+            cruisePlayerNode.pause()
+            stallPlayerNode.pause()
+            if engine.isRunning {
+                engine.pause()
+            }
+        }
+    }
+
     // MARK: - Aviation In-Flight Audio Synthesis
 
     private func loadAircraftBuffers(for aircraft: VehicleType) {
         let sampleRate: Double = 44100.0
-        let durationSeconds: Double = 4.0
+        let durationSeconds: Double = 2.0 // Optimized 2.0s seamless loop (50% less RAM)
         let frameCount = AVAudioFrameCount(sampleRate * durationSeconds)
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2)!
 

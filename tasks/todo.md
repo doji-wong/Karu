@@ -176,3 +176,98 @@
   - **Verify:** `swift test && swift build -Xswiftc -warnings-as-errors`
   - **Files:** `docs/decisions/ADR-014-standalone-macos-packaging-and-dock-telemetry.md`
 
+---
+
+## Phase 10: Performance, Battery & Memory Optimization (`perf-optimization`)
+
+- [x] **Task 10.1: CoreAudio Adaptive Low-Power Lifecycle in `AudioEngine`**
+  - **Description:** Implement adaptive power management in `AudioEngine` to pause/stop `AVAudioEngine` and player node DSP loops when in `.idle`, `.completed`, `.pitStop`, or muted states, letting macOS CPU cores and audio hardware enter low-power sleep states. Optimize audio buffer synthesis to 2.0s seamless loops.
+  - **Acceptance Criteria:**
+    - `AudioEngine` is paused when no sound is actively required.
+    - Transitions to `.cruising` / `.trafficStalled` wake audio on demand.
+    - Audio synthesis memory is reduced by 50%.
+  - **Verify:** `swift test --filter AudioEngineTests`
+  - **Files:** `Sources/KaruCore/Core/AudioEngine.swift`
+  - **Scope:** Small (1 file)
+
+- [x] **Task 10.2: Kernel Timer Coalescing & Tolerance in `TransitEngine`**
+  - **Description:** Configure `timer.tolerance = 0.1` and add the timer to `RunLoop.main` in `.common` mode to allow kernel wakeup coalescing and prevent timer starvation during UI interactions.
+  - **Acceptance Criteria:**
+    - Timer uses 100ms tolerance for power coalescing.
+    - Timer operates in `.common` mode.
+  - **Verify:** `swift test --filter TransitEngineTests`
+  - **Files:** `Sources/KaruCore/Core/TransitEngine.swift`
+  - **Scope:** XS (1 file)
+
+- [x] **Task 10.3: Thread-Safe In-Memory JSON Caching in `LocalStorageManager`**
+  - **Description:** Add in-memory caching to `LocalStorageManager` for preferences, vehicle profiles, habits, custom rules, and widget snapshots to eliminate redundant disk reads and JSON parsing during background ticks.
+  - **Acceptance Criteria:**
+    - Loads return cached models in O(1) memory lookup.
+    - Saves update cache and write atomically to disk.
+  - **Verify:** `swift test --filter LocalStorageTests`
+  - **Files:** `Sources/KaruCore/Storage/LocalStorageManager.swift`
+  - **Scope:** Small (1 file)
+
+- [x] **Task 10.4: App Radar Icon Downscaling & Caching**
+  - **Description:** Implement 48x48 pt downscaling and memory caching for running application icons in `AppFilterSettingsView` and `OnboardingView` to reduce memory footprint by 50-80 MB.
+  - **Acceptance Criteria:**
+    - Icons are resized to thumbnail dimensions before storage.
+    - App memory usage stays < 45 MB with 40+ running apps.
+  - **Verify:** `swift build -Xswiftc -warnings-as-errors`
+  - **Files:** `Sources/Karu/UI/Settings/AppFilterSettingsView.swift`, `Sources/Karu/UI/Onboarding/OnboardingView.swift`
+  - **Scope:** Small (2 files)
+
+- [x] **Task 10.5: Atomic Lock Optimizations in `AppClassifier`**
+  - **Description:** Refactor `AppClassifier` cache rebuilding to execute inside the locked critical section, eliminating lock thrashing.
+  - **Acceptance Criteria:**
+    - `setPreset`, `setCustomRule`, and `removeCustomRule` rebuild cache atomically within a single lock acquisition.
+  - **Verify:** `swift test --filter AppClassifierTests`
+  - **Files:** `Sources/KaruCore/Core/AppClassifier.swift`
+  - **Scope:** XS (1 file)
+
+### Checkpoint: Performance & Battery Optimization
+- [x] All unit tests pass cleanly (`swift test`)
+- [x] Build succeeds with zero warnings (`swift build -Xswiftc -warnings-as-errors`)
+
+---
+
+## Phase 11: Native macOS Desktop Widget Extension Packaging & Registration (`widget-appex`)
+
+- [x] **Task 11.1: Implement `KaruWidgets.swift` (`WidgetBundle`)**
+  - **Description:** Create the native Widget entry point conforming to `WidgetBundle`, containing `SmallAirspeedGaugeWidget` (`systemSmall`) and `MediumFlightDispatchWidget` (`systemMedium`), hooked to `FlightTelemetryTimelineProvider`.
+  - **Acceptance Criteria:**
+    - Declares `@main struct KaruWidgetBundle: WidgetBundle`.
+    - Declares `SmallAirspeedGaugeWidget` and `MediumFlightDispatchWidget` with correct metadata, descriptions, and `.containerBackground`.
+  - **Verification:** `swift build`
+  - **Files:** `Sources/KaruWidgets/KaruWidgetsMain.swift`
+  - **Scope:** Small (1 file)
+
+- [x] **Task 11.2: Add Widget Extension Configuration & Plist**
+  - **Description:** Create `Packaging/WidgetInfo.plist` with `NSExtensionPointIdentifier` set to `com.apple.widgetkit-extension` and update `Package.swift` or build script for extension targeting.
+  - **Acceptance Criteria:**
+    - `WidgetInfo.plist` is properly configured for macOS 14+ WidgetKit.
+  - **Verification:** `plutil -lint Packaging/WidgetInfo.plist`
+  - **Files:** `Packaging/WidgetInfo.plist`
+  - **Scope:** XS (1 file)
+
+- [x] **Task 11.3: Update Build & Packaging Pipeline for `.appex` Embedding**
+  - **Description:** Update `scripts/build_app.sh` to compile `KaruWidgets`, package `Karu.app/Contents/PlugIns/KaruWidgets.appex`, codesign both `.appex` and `.app`, and assemble the release archive.
+  - **Acceptance Criteria:**
+    - `build/Karu.app/Contents/PlugIns/KaruWidgets.appex` is assembled and codesigned with `codesign --deep`.
+  - **Verification:** `./scripts/build_app.sh`
+  - **Files:** `scripts/build_app.sh`
+  - **Scope:** Small (1 file)
+
+- [x] **Task 11.4: Implement 1-Command System Installer Script (`install_app.sh`)**
+  - **Description:** Create `scripts/install_app.sh` that builds `Karu.app` with embedded widgets, installs to `/Applications/Karu.app`, registers with macOS LaunchServices / `widgetkitd`, and informs the user how to drag it to their desktop.
+  - **Acceptance Criteria:**
+    - Copies `Karu.app` into `/Applications/`.
+    - Triggers `lsregister` / LaunchServices refresh so widgets immediately appear in the macOS Desktop Widget Gallery ("Edit Widgets...").
+  - **Verification:** `./scripts/install_app.sh`
+  - **Files:** `scripts/install_app.sh`
+  - **Scope:** Small (1 file)
+
+### Checkpoint: Release & Widget Verification
+- [x] `./scripts/build_app.sh` packages `Karu.app` with embedded `KaruWidgets.appex` cleanly
+- [x] `swift test` passes 100% of unit tests
+- [x] Widgets are ready to appear on macOS desktop
