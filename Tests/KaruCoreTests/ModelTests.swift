@@ -163,4 +163,27 @@ struct ModelTests {
         let bus = try decoder.decode(AircraftType.self, from: Data("\"coastalBus\"".utf8))
         #expect(bus == .cessna172)
     }
+
+    @Test("KaruPreferences domain model and JSON serialization")
+    func preferencesDomainModel() throws {
+        let prefs = KaruPreferences(
+            hasCompletedOnboarding: false,
+            presentationMode: .standardDock,
+            dockBadgeStyle: .timeRemaining,
+            enableDockTileGraphics: true,
+            dailyFlightGoalMinutes: 240,
+            selectedMissionRole: .developer,
+            launchAtLogin: false
+        )
+
+        let encoder = JSONEncoder()
+        let data = try encoder.encode(prefs)
+        let decoder = JSONDecoder()
+        let decoded = try decoder.decode(KaruPreferences.self, from: data)
+
+        #expect(decoded == prefs)
+        #expect(decoded.selectedMissionRole.title == "Software & Systems Engineering")
+        #expect(decoded.presentationMode.displayName == "Standard Cockpit (Dock + Menu Bar)")
+        #expect(decoded.dockBadgeStyle.displayName == "Remaining Time (e.g. 24m)")
+    }
 }

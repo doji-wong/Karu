@@ -34,6 +34,7 @@ public final class LocalStorageManager: @unchecked Sendable {
     public var filtersFileURL: URL { baseDirectory.appendingPathComponent("app_filters.json") }
     public var vehicleFileURL: URL { baseDirectory.appendingPathComponent("vehicle_profile.json") }
     public var widgetSnapshotFileURL: URL { baseDirectory.appendingPathComponent("widget_snapshot.json") }
+    public var preferencesFileURL: URL { baseDirectory.appendingPathComponent("preferences.json") }
 
     // MARK: - Generic Atomic Read/Write
 
@@ -109,6 +110,14 @@ public final class LocalStorageManager: @unchecked Sendable {
 
     public func loadWidgetSnapshot() -> WidgetTelemetrySnapshot {
         load(from: widgetSnapshotFileURL, defaultValue: .idleMock)
+    }
+
+    public func savePreferences(_ preferences: KaruPreferences) throws {
+        try save(preferences, to: preferencesFileURL)
+    }
+
+    public func loadPreferences() -> KaruPreferences {
+        load(from: preferencesFileURL, defaultValue: KaruPreferences())
     }
 
     // MARK: - Directory Management

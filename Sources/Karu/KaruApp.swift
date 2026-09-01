@@ -33,6 +33,10 @@ struct KaruApp: App {
                 }
                 .keyboardShortcut("w", modifiers: [.command, .shift])
 
+                Button("Pre-Flight Cockpit Briefing...") {
+                    appDelegate.replayOnboarding()
+                }
+
                 Button("Preferences & Rules...") {
                     appDelegate.openSettingsWindow()
                 }

@@ -19,6 +19,7 @@ Use this map to selectively load context when working on specific features.
 - **`VehicleProfile.swift`**: Aircraft fleet selection (`a350F`, `b787Dreamliner`, `concordeSST`, `gulfstreamG650`, `cessna172`), audio profile references, and sound configuration.
 - **`AppFilterRule.swift`**: Bundle identifier rules, `AppFocusCategory`, and curated presets (`developer`, `student`, `writer`).
 - **`WidgetTelemetrySnapshot.swift`**: Immutable, curated 12-field telemetry contract for Desktop and Notification Center widgets.
+- **`KaruPreferences.swift`**: 100% Local-First user preferences (`hasCompletedOnboarding`, `presentationMode`, `dockBadgeStyle`, `dailyFlightGoalMinutes`, `selectedMissionRole`).
 
 ---
 
@@ -48,29 +49,36 @@ Use this map to selectively load context when working on specific features.
   - `FlightTelemetryTimelineProvider.swift`: WidgetKit `TimelineProvider` loading atomic snapshots.
   - `WidgetIntents.swift`: macOS 14+ `AppIntent` handlers (`TakeoffIntent`, `GateHoldIntent`).
   - `WidgetSimulatorView.swift`: In-App Desktop Widget Simulator & Preview window (`Cmd + Shift + W`).
+- **`Dock/`**:
+  - `DynamicDockTileView.swift`: Mini carbon-matte cockpit avionics rendered directly in `NSApp.dockTile.contentView`.
+  - `DockTelemetryManager.swift`: Coordinates live circular progress, airspeed readout, and dynamic badge string with `< 0.5%` CPU throttling.
+- **`Onboarding/`**:
+  - `OnboardingView.swift`: 4-stage interactive pre-flight cockpit intake window (Mission questions, 1-Click App Radar, velocity briefing, maiden takeoff ignition).
+  - `OnboardingWindowController.swift`: Modal window controller presenting onboarding on first launch or via Menu bar request.
 - **`Logbook/`**:
   - `LogbookView.swift`: Dedicated Pilot's Flight Logbook window (`Cmd + L`) tracking total focus flight hours, distance flown (`NM`), touchdowns, fleet on-time efficiency, and historical session logs.
 - **`Garage/`**:
   - `GarageHangarView.swift`: Aircraft fleet hangar, acoustic soundscape testbed, and volume tuning.
 - **`Settings/`**:
-  - `AppFilterSettingsView.swift`: 1-Click Running App Radar (scans active apps with native icons) and rule manager.
+  - `AppFilterSettingsView.swift`: 1-Click Running App Radar (scans active apps with native icons), rule manager, and Display & Dock settings.
 - **`Theme/`**:
   - `KaruTheme.swift`: Dark carbon matte tokens (`#08080A`, `#151518`), typography, and corner radiuses.
 
 ---
 
-## 5. Application Lifecycle (`Sources/Karu/`)
+## 5. Application Lifecycle & Packaging (`Sources/Karu/` & `Packaging/`)
 - **`KaruApp.swift`**: SwiftUI app entry point, system menu commands (`Cmd + L`, `Cmd + Shift + F`, `Cmd + Shift + G`, `Cmd + Shift + W`, `Cmd + ,`).
-- **`AppDelegate.swift`**: `NSApplicationDelegate` coordinator wiring engines, window controllers, widget exporter, and notifications.
+- **`AppDelegate.swift`**: `NSApplicationDelegate` coordinator wiring engines, window controllers, widget exporter, dock telemetry manager, onboarding controller, and `applicationDockMenu`.
+- **`Packaging/`**: `Info.plist`, `AppIcon.icns`, `generate_app_icon.swift`, and `build_app.sh` release packager.
 
 ---
 
 ## 6. Unit & Integration Tests (`Tests/KaruCoreTests/`)
 - **`TransitEngineTests.swift`**: 540 kts speed calculations, gate hold pauses, turbulence encounter logging, and flight auto-completion.
 - **`AppClassifierTests.swift`**: Bundle ID lookups, custom user overrides, preset evaluation, and strict mode.
-- **`LocalStorageTests.swift`**: Atomic writes, disk recovery, habit streaks, and trip session serialization.
+- **`LocalStorageTests.swift`**: Atomic writes, disk recovery, habit streaks, preferences persistence, and trip session serialization.
 - **`AudioEngineTests.swift`**: Volume ramp crossfading, audio lifecycle, and mute controls.
-- **`ModelTests.swift`**: Codable compliance and domain model math verification.
+- **`ModelTests.swift`**: Codable compliance, KaruPreferences serialization, and domain model math verification.
 - **`WidgetTelemetryTests.swift`**: Snapshot serialization roundtrips, presentation math, atomic saving, and corrupted fallback recovery.
 
 ---
@@ -80,4 +88,4 @@ Use this map to selectively load context when working on specific features.
 - [SPEC.md](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/SPEC.md): Technical specification and architectural guidelines.
 - [SPEC-widget.md](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/SPEC-widget.md): Desktop flight telemetry widget specification.
 - [CAPABILITY_MAP.md](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/CAPABILITY_MAP.md): Decoupled module boundaries and dependency graphs.
-- [ADRs](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/decisions/): Architecture Decision Records covering ADR-001 through ADR-013.
+- [ADRs](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/decisions/): Architecture Decision Records covering ADR-001 through ADR-014.

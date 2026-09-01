@@ -65,8 +65,8 @@ public final class AudioEngine {
         // Set initial volumes
         cruisePlayerNode.volume = 0.0
         stallPlayerNode.volume = 0.0
-        chimePlayerNode.volume = 0.8
-        mixerNode.outputVolume = masterVolume
+        chimePlayerNode.volume = 1.0
+        mixerNode.outputVolume = isMuted ? 0.0 : masterVolume
 
         // Generate aircraft-specific ambient buffers & chimes
         loadAircraftBuffers(for: currentVehicle)
@@ -85,7 +85,6 @@ public final class AudioEngine {
             }
             isRunning = true
             scheduleLoops()
-            playSeatbeltChime()
             updateState(currentTransitState, animated: false)
         } catch {
             print("[FocusFlightAudio] Failed to start AVAudioEngine: \(error)")
@@ -125,6 +124,9 @@ public final class AudioEngine {
 
     /// Play the classic dual-tone airplane seatbelt sign chime ("Ding-Dong").
     public func playSeatbeltChime() {
+        if !isRunning {
+            start()
+        }
         guard isRunning, !isMuted, let chimeBuf = seatbeltChimeBuffer else { return }
         chimePlayerNode.stop()
         chimePlayerNode.scheduleBuffer(chimeBuf, at: nil, options: [], completionHandler: nil)
@@ -157,7 +159,7 @@ public final class AudioEngine {
             }
             utterance.rate = 0.48
             utterance.pitchMultiplier = 0.95
-            utterance.volume = min(1.0, max(0.2, self.masterVolume))
+            utterance.volume = min(1.0, max(0.4, self.masterVolume))
             
             self.speechSynthesizer.speak(utterance)
         }
@@ -195,6 +197,10 @@ public final class AudioEngine {
     public func updateState(_ state: TransitState, animated: Bool = true) {
         let previousState = self.currentTransitState
         self.currentTransitState = state
+
+        if (state == .cruising || state == .trafficStalled) && !isRunning {
+            start()
+        }
         guard isRunning else { return }
 
         // Play chime on entering turbulence or touchdown
@@ -278,7 +284,7 @@ public final class AudioEngine {
 
     private func loadAircraftBuffers(for aircraft: VehicleType) {
         let sampleRate: Double = 44100.0
-        let durationSeconds: Double = 5.0
+        let durationSeconds: Double = 4.0
         let frameCount = AVAudioFrameCount(sampleRate * durationSeconds)
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2)!
 
@@ -290,30 +296,38 @@ public final class AudioEngine {
 
             for ch in 0..<channels {
                 guard let data = cBuf.floatChannelData?[ch] else { continue }
+                var pinkState1 = 0.0
+                var pinkState2 = 0.0
+                var brownState = 0.0
+                var seed = UInt32(ch * 7919 + 104729)
+
                 for frame in 0..<Int(frameCount) {
                     let t = Double(frame) / sampleRate
-                    var sample: Double = 0.0
 
-                    // Layer A: Low-frequency turbofan drone (55 - 90 Hz)
-                    let fanPhase = 2.0 * .pi * params.engineFreq * t
-                    let fanDrone = sin(fanPhase) * params.engineLevel
-                    let fanHarmonic = sin(fanPhase * 2.0) * params.engineLevel * 0.35
-                    // Subtle cabin acoustic modulation (breathing air pressure)
-                    let pressureMod = sin(2.0 * .pi * 0.15 * t) * 0.03
-                    sample += (fanDrone + fanHarmonic) * (1.0 + pressureMod)
+                    // White noise source
+                    seed = seed &* 1664525 &+ 1013904223
+                    let white = (Double(seed) / Double(UInt32.max)) * 2.0 - 1.0
 
-                    // Layer B: Soothing conditioned cabin airflow (pink noise)
-                    let airFlow = pinkNoise(frame: frame, ch: ch, seed: 101) * params.cabinAirLevel
-                    sample += airFlow
+                    // Pink noise filter (2-pole gentle lowpass) for conditioned air rush
+                    pinkState1 = 0.82 * pinkState1 + 0.18 * white
+                    pinkState2 = 0.82 * pinkState2 + 0.18 * pinkState1
+                    let cabinAir = pinkState2 * params.cabinAirLevel
 
-                    // Layer C: High-altitude broadband white noise (sound-dampened hull)
-                    let hullDampening = brownNoise(frame: frame, ch: ch, seed: 202) * params.hullRumbleLevel
-                    sample += hullDampening
+                    // Brown noise filter (deep hull rumble)
+                    brownState = 0.985 * brownState + 0.015 * white
+                    let hullRumble = brownState * params.hullRumbleLevel
 
-                    // Layer D: Aircraft-specific acoustic character layer
-                    sample += params.characterLayer(t, frame, ch)
+                    // Turbofan drone harmonics
+                    let f0 = params.engineFreq
+                    let fan1 = sin(2.0 * .pi * f0 * t) * params.engineLevel
+                    let fan2 = sin(2.0 * .pi * (f0 * 2.0) * t) * (params.engineLevel * 0.45)
+                    let fan3 = sin(2.0 * .pi * (f0 * 3.0) * t) * (params.engineLevel * 0.25)
+                    let turbofan = fan1 + fan2 + fan3
 
-                    // Master soft limiting
+                    // Character layer
+                    let charLayer = params.characterLayer(t, frame, ch)
+
+                    let sample = (cabinAir + hullRumble + turbofan + charLayer) * 1.6
                     data[frame] = Float(max(-0.95, min(0.95, sample)))
                 }
             }
@@ -327,29 +341,31 @@ public final class AudioEngine {
 
             for ch in 0..<channels {
                 guard let data = sBuf.floatChannelData?[ch] else { continue }
+                var pinkState = 0.0
+                var brownState = 0.0
+                var seed = UInt32(ch * 54321 + 98765)
+
                 for frame in 0..<Int(frameCount) {
                     let t = Double(frame) / sampleRate
-                    var sample: Double = 0.0
 
-                    // Layer A: Low-frequency airframe shudder (18-32 Hz air pocket rumble)
-                    let pocketFreq = 22.0 + sin(2.0 * .pi * 0.6 * t) * 8.0
-                    let airPocketRumble = sin(2.0 * .pi * pocketFreq * t) * 0.16
-                    sample += airPocketRumble
+                    seed = seed &* 1664525 &+ 1013904223
+                    let white = (Double(seed) / Double(UInt32.max)) * 2.0 - 1.0
 
-                    // Layer B: Atmospheric crosswind shear (periodic wind buffet sweeps)
-                    let windSweep = sin(2.0 * .pi * 0.35 * t)
-                    let buffetIntensity = max(0.0, windSweep)
-                    let windBuffet = pinkNoise(frame: frame, ch: ch, seed: 303) * 0.22 * buffetIntensity
-                    sample += windBuffet
+                    pinkState = 0.85 * pinkState + 0.15 * white
+                    brownState = 0.98 * brownState + 0.02 * white
 
-                    // Layer C: Hull shudder impulse (sporadic bumps)
-                    let bumpImpulse = sin(2.0 * .pi * 1.8 * t) > 0.88 ? brownNoise(frame: frame, ch: ch, seed: 404) * 0.12 : 0.0
-                    sample += bumpImpulse
+                    // Air pocket low-frequency shudder
+                    let pocketFreq = 24.0 + sin(2.0 * .pi * 0.8 * t) * 10.0
+                    let pocketRumble = sin(2.0 * .pi * pocketFreq * t) * 0.25
 
-                    // Layer D: Continuous cockpit air rush
-                    let cockpitRush = brownNoise(frame: frame, ch: ch, seed: 505) * 0.08
-                    sample += cockpitRush
+                    // Crosswind shear buffet sweeps
+                    let windMod = max(0.0, sin(2.0 * .pi * 0.4 * t))
+                    let windBuffet = pinkState * 0.35 * windMod
 
+                    // Hull bumps
+                    let bump = sin(2.0 * .pi * 1.5 * t) > 0.85 ? brownState * 0.35 : 0.0
+
+                    let sample = (pocketRumble + windBuffet + bump + (brownState * 0.2)) * 1.6
                     data[frame] = Float(max(-0.95, min(0.95, sample)))
                 }
             }
@@ -378,19 +394,21 @@ public final class AudioEngine {
 
                 // Tone 1: High Bell D5 (0.0s to 0.7s)
                 if t < 0.7 {
-                    let decay1 = exp(-t * 5.5) // Smooth exponential bell ring
-                    let tone1 = sin(2.0 * .pi * 587.33 * t) * 0.25 * decay1
-                    let overtone1 = sin(2.0 * .pi * 1174.66 * t) * 0.08 * decay1
-                    sample += tone1 + overtone1
+                    let decay1 = exp(-t * 5.0) // Smooth exponential bell ring
+                    let tone1 = sin(2.0 * .pi * 587.33 * t) * 0.45 * decay1
+                    let overtone1 = sin(2.0 * .pi * 1174.66 * t) * 0.18 * decay1
+                    let overtone1b = sin(2.0 * .pi * 1761.99 * t) * 0.06 * decay1
+                    sample += tone1 + overtone1 + overtone1b
                 }
 
                 // Tone 2: Low Bell A4 (0.28s to 1.6s)
                 if t >= 0.28 {
                     let t2 = t - 0.28
-                    let decay2 = exp(-t2 * 4.5)
-                    let tone2 = sin(2.0 * .pi * 440.00 * t2) * 0.28 * decay2
-                    let overtone2 = sin(2.0 * .pi * 880.00 * t2) * 0.09 * decay2
-                    sample += tone2 + overtone2
+                    let decay2 = exp(-t2 * 4.2)
+                    let tone2 = sin(2.0 * .pi * 440.00 * t2) * 0.48 * decay2
+                    let overtone2 = sin(2.0 * .pi * 880.00 * t2) * 0.20 * decay2
+                    let overtone2b = sin(2.0 * .pi * 1320.00 * t2) * 0.08 * decay2
+                    sample += tone2 + overtone2 + overtone2b
                 }
 
                 data[frame] = Float(max(-0.95, min(0.95, sample)))
@@ -415,12 +433,12 @@ public final class AudioEngine {
             // Airbus A350F: Quiet carbon-composite cabin + Rolls-Royce Trent XWB turbofan hum
             return AircraftAudioParams(
                 engineFreq: 58.0,
-                engineLevel: 0.10,
-                cabinAirLevel: 0.12,
-                hullRumbleLevel: 0.06,
+                engineLevel: 0.18,
+                cabinAirLevel: 0.22,
+                hullRumbleLevel: 0.15,
                 characterLayer: { t, _, _ in
                     // High-bypass turbine blade harmonic (soothing 420 Hz hum)
-                    let turbine = sin(2.0 * .pi * 420.0 * t) * 0.02
+                    let turbine = sin(2.0 * .pi * 420.0 * t) * 0.035
                     return turbine
                 }
             )
@@ -429,12 +447,11 @@ public final class AudioEngine {
             // Boeing 787-9 Dreamliner: Serene acoustic cabin dampening + gentle high-altitude mist
             return AircraftAudioParams(
                 engineFreq: 64.0,
-                engineLevel: 0.12,
-                cabinAirLevel: 0.14,
-                hullRumbleLevel: 0.05,
-                characterLayer: { t, frame, ch in
-                    // Gentle high-altitude rain / mist whisper
-                    let mist = self.pinkNoise(frame: frame, ch: ch, seed: 12) * 0.025
+                engineLevel: 0.18,
+                cabinAirLevel: 0.24,
+                hullRumbleLevel: 0.14,
+                characterLayer: { t, _, _ in
+                    let mist = sin(2.0 * .pi * 320.0 * t) * 0.03
                     return mist
                 }
             )
@@ -443,12 +460,11 @@ public final class AudioEngine {
             // Concorde SST: Supersonic delta-wing airflow rush + Olympus turbojet thrust
             return AircraftAudioParams(
                 engineFreq: 88.0,
-                engineLevel: 0.16,
-                cabinAirLevel: 0.18,
-                hullRumbleLevel: 0.08,
-                characterLayer: { t, frame, ch in
-                    // Supersonic Mach 2.0 aerodynamic wave
-                    let machRush = self.pinkNoise(frame: frame, ch: ch, seed: 34) * 0.06
+                engineLevel: 0.24,
+                cabinAirLevel: 0.28,
+                hullRumbleLevel: 0.18,
+                characterLayer: { t, _, _ in
+                    let machRush = sin(2.0 * .pi * 650.0 * t) * 0.04
                     return machRush
                 }
             )
@@ -457,11 +473,11 @@ public final class AudioEngine {
             // Gulfstream G650: Whisper-quiet executive jet FL450 cruising air
             return AircraftAudioParams(
                 engineFreq: 72.0,
-                engineLevel: 0.07,
-                cabinAirLevel: 0.09,
-                hullRumbleLevel: 0.04,
+                engineLevel: 0.14,
+                cabinAirLevel: 0.18,
+                hullRumbleLevel: 0.10,
                 characterLayer: { t, _, _ in
-                    let whisper = sin(2.0 * .pi * 510.0 * t) * 0.015
+                    let whisper = sin(2.0 * .pi * 510.0 * t) * 0.025
                     return whisper
                 }
             )
@@ -470,30 +486,15 @@ public final class AudioEngine {
             // Cessna 172 Skyhawk: Lycoming 4-cylinder rhythmic propeller drone
             return AircraftAudioParams(
                 engineFreq: 42.0,
-                engineLevel: 0.20,
-                cabinAirLevel: 0.08,
-                hullRumbleLevel: 0.05,
-                characterLayer: { t, frame, ch in
+                engineLevel: 0.26,
+                cabinAirLevel: 0.16,
+                hullRumbleLevel: 0.14,
+                characterLayer: { t, _, _ in
                     // Propeller blade thrum (2-blade prop at 2400 RPM = 80 Hz beat)
-                    let propBeat = sin(2.0 * .pi * 80.0 * t) * 0.06
+                    let propBeat = sin(2.0 * .pi * 80.0 * t) * 0.08
                     return propBeat
                 }
             )
         }
-    }
-
-    // MARK: - Noise Synthesizers
-
-    private func brownNoise(frame: Int, ch: Int, seed: Int) -> Double {
-        let idx = frame &+ (ch &* 44100) &+ (seed &* 17389)
-        let raw = Double((idx &* 1103515245 &+ 12345) & 0x7fffffff) / Double(0x7fffffff)
-        let white = (raw * 2.0 - 1.0)
-        return white * 0.5
-    }
-
-    private func pinkNoise(frame: Int, ch: Int, seed: Int) -> Double {
-        let idx = frame &+ (ch &* 44100) &+ (seed &* 31337)
-        let raw = Double((idx &* 214013 &+ 2531011) & 0x7fffffff) / Double(0x7fffffff)
-        return (raw * 2.0 - 1.0) * 0.7
     }
 }

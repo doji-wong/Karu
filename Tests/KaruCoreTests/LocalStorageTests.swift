@@ -160,4 +160,35 @@ struct LocalStorageTests {
         #expect(loaded.isSoundEnabled == true)
         #expect(loaded.ambientVolume == 0.75)
     }
+
+    @Test("LocalStorageManager persists and retrieves KaruPreferences accurately")
+    func preferencesPersistence() throws {
+        let (storage, tempDir) = createTestStorage()
+        defer { cleanupTestStorage(url: tempDir) }
+
+        let defaultPrefs = storage.loadPreferences()
+        #expect(defaultPrefs.hasCompletedOnboarding == false)
+        #expect(defaultPrefs.presentationMode == .standardDock)
+        #expect(defaultPrefs.dockBadgeStyle == .timeRemaining)
+
+        let customPrefs = KaruPreferences(
+            hasCompletedOnboarding: true,
+            presentationMode: .menuBarOnly,
+            dockBadgeStyle: .airspeedKts,
+            enableDockTileGraphics: false,
+            dailyFlightGoalMinutes: 360,
+            selectedMissionRole: .writer,
+            launchAtLogin: true
+        )
+
+        try storage.savePreferences(customPrefs)
+
+        let loaded = storage.loadPreferences()
+        #expect(loaded == customPrefs)
+        #expect(loaded.hasCompletedOnboarding == true)
+        #expect(loaded.presentationMode == .menuBarOnly)
+        #expect(loaded.dockBadgeStyle == .airspeedKts)
+        #expect(loaded.dailyFlightGoalMinutes == 360)
+        #expect(loaded.selectedMissionRole == .writer)
+    }
 }

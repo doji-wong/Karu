@@ -10,15 +10,23 @@ struct RunningAppItem: Identifiable {
     var category: AppFocusCategory?
 }
 
-/// Preferences view for managing Focus presets, 1-Click Running App Radar, and custom rules.
+/// Preferences view for managing Focus presets, 1-Click Running App Radar, custom rules, and Display & Dock settings.
 public struct AppFilterSettingsView: View {
     public var classifier: AppClassifier
     public var storage: LocalStorageManager
+    public var onReplayOnboarding: (() -> Void)?
+    public var onPresentationModeChanged: ((AppPresentationMode) -> Void)?
 
-    @State private var selectedTab: Int = 0 // 0: Radar, 1: Rules & Presets
+    @State private var selectedTab: Int = 0 // 0: Radar, 1: Rules & Presets, 2: Display & Dock
     @State private var selectedPreset: FocusPreset
     @State private var isStrictMode: Bool
     @State private var customRules: [AppFilterRule] = []
+    
+    // Preferences state
+    @State private var presentationMode: AppPresentationMode = .standardDock
+    @State private var dockBadgeStyle: DockBadgeStyle = .timeRemaining
+    @State private var enableDockGraphics: Bool = true
+    @State private var dailyGoalMinutes: Int = 240
     
     // Live Running Apps
     @State private var runningApps: [RunningAppItem] = []
@@ -29,9 +37,16 @@ public struct AppFilterSettingsView: View {
     @State private var newAppName: String = ""
     @State private var newCategory: AppFocusCategory = .distractionHazard
 
-    public init(classifier: AppClassifier, storage: LocalStorageManager) {
+    public init(
+        classifier: AppClassifier,
+        storage: LocalStorageManager,
+        onReplayOnboarding: (() -> Void)? = nil,
+        onPresentationModeChanged: ((AppPresentationMode) -> Void)? = nil
+    ) {
         self.classifier = classifier
         self.storage = storage
+        self.onReplayOnboarding = onReplayOnboarding
+        self.onPresentationModeChanged = onPresentationModeChanged
         _selectedPreset = State(initialValue: classifier.activePreset)
         _isStrictMode = State(initialValue: classifier.isStrictModeEnabled)
     }
@@ -44,35 +59,65 @@ public struct AppFilterSettingsView: View {
                     Text("FLIGHT TELEMETRY & APP RADAR")
                         .font(KaruTheme.captionMono)
                         .foregroundStyle(Color(hex: 0xFF5C00))
-                    Text("App Classification Rules")
+                    Text(tabTitle)
                         .font(KaruTheme.headerTitle)
                         .foregroundStyle(KaruTheme.textPrimary)
                 }
                 Spacer()
                 
                 Picker("", selection: $selectedTab) {
-                    Text("Radar (Running Apps)").tag(0)
-                    Text("Rules & Presets").tag(1)
+                    Text("Radar").tag(0)
+                    Text("Rules").tag(1)
+                    Text("Display & Dock").tag(2)
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 260)
+                .frame(width: 280)
             }
 
             Divider().background(KaruTheme.cardBorder)
 
             if selectedTab == 0 {
                 runningAppRadarView
-            } else {
+            } else if selectedTab == 1 {
                 rulesAndPresetsView
+            } else {
+                displayAndDockSettingsView
             }
         }
         .padding(18)
-        .frame(width: 560, height: 480)
+        .frame(width: 560, height: 500)
         .background(KaruTheme.background)
         .onAppear {
             self.customRules = storage.loadCustomRules()
+            loadUserPreferences()
             refreshRunningApps()
         }
+    }
+
+    private var tabTitle: String {
+        switch selectedTab {
+        case 0: return "1-Click App Radar"
+        case 1: return "App Classification Rules"
+        case 2: return "Avionics Display & Dock"
+        default: return "Preferences"
+        }
+    }
+
+    private func loadUserPreferences() {
+        let prefs = storage.loadPreferences()
+        self.presentationMode = prefs.presentationMode
+        self.dockBadgeStyle = prefs.dockBadgeStyle
+        self.enableDockGraphics = prefs.enableDockTileGraphics
+        self.dailyGoalMinutes = prefs.dailyFlightGoalMinutes
+    }
+
+    private func persistUserPreferences() {
+        var prefs = storage.loadPreferences()
+        prefs.presentationMode = presentationMode
+        prefs.dockBadgeStyle = dockBadgeStyle
+        prefs.enableDockTileGraphics = enableDockGraphics
+        prefs.dailyFlightGoalMinutes = dailyGoalMinutes
+        try? storage.savePreferences(prefs)
     }
 
     // MARK: - 1-Click Running App Radar View
@@ -318,6 +363,99 @@ public struct AppFilterSettingsView: View {
                     }
                 }
                 .frame(maxHeight: 140)
+            }
+        }
+    }
+
+    // MARK: - Display & Dock Settings View
+
+    @ViewBuilder
+    private var displayAndDockSettingsView: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            // Presentation Mode
+            VStack(alignment: .leading, spacing: 6) {
+                Text("MACOS PRESENTATION MODE")
+                    .font(KaruTheme.captionMono)
+                    .foregroundStyle(KaruTheme.textSecondary)
+
+                Picker("", selection: $presentationMode) {
+                    ForEach(AppPresentationMode.allCases, id: \.self) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: presentationMode) { _, newMode in
+                    persistUserPreferences()
+                    onPresentationModeChanged?(newMode)
+                }
+            }
+
+            // Dock Tile Live Graphics Toggle
+            Toggle(isOn: $enableDockGraphics) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Dynamic Dock Tile Cockpit")
+                        .font(KaruTheme.subheadline)
+                        .foregroundStyle(KaruTheme.textPrimary)
+                    Text("Renders live airspeed ring, flight velocity (540 kts), and route badge on Dock icon")
+                        .font(KaruTheme.captionMono)
+                        .foregroundStyle(KaruTheme.textMuted)
+                }
+            }
+            .onChange(of: enableDockGraphics) { _, _ in
+                persistUserPreferences()
+            }
+            .disabled(presentationMode == .menuBarOnly)
+
+            // Dock Badge Format
+            VStack(alignment: .leading, spacing: 6) {
+                Text("DOCK BADGE TEXT FORMAT")
+                    .font(KaruTheme.captionMono)
+                    .foregroundStyle(KaruTheme.textSecondary)
+
+                Picker("", selection: $dockBadgeStyle) {
+                    ForEach(DockBadgeStyle.allCases, id: \.self) { style in
+                        Text(style.displayName).tag(style)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: dockBadgeStyle) { _, _ in
+                    persistUserPreferences()
+                }
+                .disabled(presentationMode == .menuBarOnly)
+            }
+
+            Divider().background(KaruTheme.cardBorder)
+
+            // Pre-Flight Onboarding Replay
+            VStack(alignment: .leading, spacing: 6) {
+                Text("PILOT BRIEFING & ONBOARDING")
+                    .font(KaruTheme.captionMono)
+                    .foregroundStyle(KaruTheme.textSecondary)
+
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Pre-Flight Cockpit Intake")
+                            .font(KaruTheme.subheadline)
+                            .foregroundStyle(KaruTheme.textPrimary)
+                        Text("Replay the interactive mission questions and 1-click workspace radar")
+                            .font(KaruTheme.captionMono)
+                            .foregroundStyle(KaruTheme.textMuted)
+                    }
+                    Spacer()
+                    Button("Replay Briefing...") {
+                        onReplayOnboarding?()
+                    }
+                    .font(KaruTheme.captionMono)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color(hex: 0x00E5FF).opacity(0.15))
+                    .foregroundStyle(Color(hex: 0x00E5FF))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .buttonStyle(.plain)
+                }
+                .padding(10)
+                .background(KaruTheme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
         }
     }

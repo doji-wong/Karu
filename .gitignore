@@ -32,3 +32,6 @@ DerivedData/
 # Crash Logs & App Data
 *.crash
 CrashReporter/
+
+# Build Artifacts
+build/

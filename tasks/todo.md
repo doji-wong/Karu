@@ -107,8 +107,10 @@
   - **Acceptance:** `swift build -Xswiftc -warnings-as-errors` passes with 0 warnings; `swift test` passes 31/31 tests.
 - [x] **Task 7.2: Documentation & ADR Updates**
   - **Acceptance:** ADR-001 through ADR-012 recorded; SPEC.md, PRD.md, PROJECT_MAP.md, CAPABILITY_MAP.md updated.
-- [ ] **Task 7.3: Distribution Packaging (.app bundle)**
+- [x] **Task 7.3: Distribution Packaging (.app bundle)**
   - **Acceptance:** Application bundle packaging and asset catalog setup.
+  - **Verify:** `./scripts/build_app.sh`
+  - **Files:** `Packaging/Info.plist`, `scripts/generate_app_icon.swift`, `scripts/build_app.sh`
 
 ---
 
@@ -141,4 +143,36 @@
   - **Acceptance:** Engine state transitions automatically update `widget_snapshot.json`; `swift build -Xswiftc -warnings-as-errors` and all 35 tests pass cleanly.
   - **Verify:** `swift test && swift build -Xswiftc -warnings-as-errors`
   - **Files:** `Sources/Karu/AppDelegate.swift`, `Sources/KaruCore/Core/TransitEngine.swift`
+
+---
+
+## Phase 9: Standalone Distribution Packaging, Dynamic Dock Telemetry & First-Time Onboarding (`packaging-dock-onboarding`)
+- [x] **Task 9.1: Implement App Icon Asset Pipeline & Packaging Pipeline**
+  - **Acceptance:** `generate_app_icon.swift` programmatically draws 10 standard Apple squircle icon sizes and compiles `AppIcon.icns`; `build_app.sh` compiles release binary, builds `build/Karu.app`, codesigns ad-hoc, and produces `build/dist/Karu-v1.0.0-macOS.zip`.
+  - **Verify:** `./scripts/build_app.sh`
+  - **Files:** `Packaging/Info.plist`, `scripts/generate_app_icon.swift`, `scripts/build_app.sh`
+- [x] **Task 9.2: Implement `KaruPreferences` & Local Storage Persistence**
+  - **Acceptance:** `KaruPreferences.swift` models onboarding status, presentation modes (`.standardDock` vs `.menuBarOnly`), dock badge styles, and daily flight goals; persisted atomically in `preferences.json`.
+  - **Verify:** `swift test --filter LocalStorageTests`
+  - **Files:** `Sources/KaruCore/Models/KaruPreferences.swift`, `Sources/KaruCore/Storage/LocalStorageManager.swift`
+- [x] **Task 9.3: Implement Dynamic Dock Telemetry View & Manager (`NSDockTile`)**
+  - **Acceptance:** `DynamicDockTileView.swift` and `DockTelemetryManager.swift` render live circular flight progress rings, airspeed velocity (`540 KTS`), and state badges on the macOS Dock icon with `< 0.5%` CPU throttling.
+  - **Verify:** `swift build -Xswiftc -warnings-as-errors`
+  - **Files:** `Sources/Karu/UI/Dock/DynamicDockTileView.swift`, `Sources/Karu/UI/Dock/DockTelemetryManager.swift`
+- [x] **Task 9.4: Implement Dynamic Dock Context Menu (`applicationDockMenu`)**
+  - **Acceptance:** `AppDelegate.applicationDockMenu(_:)` delivers live telemetry status, 1-click takeoff/gate hold/touchdown/abort flight dispatch controls, and cockpit window shortcuts.
+  - **Verify:** `swift build`
+  - **Files:** `Sources/Karu/AppDelegate.swift`
+- [x] **Task 9.5: Implement First-Time Pilot Onboarding ("Pre-Flight Cockpit Briefing")**
+  - **Acceptance:** 4-stage interactive modal window (`OnboardingView.swift` & `OnboardingWindowController.swift`) prompting mission questions, 1-Click workspace radar app scanning, velocity mental model briefing, and maiden takeoff ignition.
+  - **Verify:** `swift build -Xswiftc -warnings-as-errors`
+  - **Files:** `Sources/Karu/UI/Onboarding/OnboardingView.swift`, `Sources/Karu/UI/Onboarding/OnboardingWindowController.swift`
+- [x] **Task 9.6: Implement Display & Dock Settings & Replay Briefing Action**
+  - **Acceptance:** `AppFilterSettingsView.swift` includes "Display & Dock" tab for presentation mode, dock badge style, dynamic dock graphics toggle, and "Replay Cockpit Briefing...".
+  - **Verify:** `swift build`
+  - **Files:** `Sources/Karu/UI/Settings/AppFilterSettingsView.swift`, `Sources/Karu/KaruApp.swift`
+- [x] **Task 9.7: Record ADR-014 & Full Verification**
+  - **Acceptance:** ADR-014 recorded; `swift build -Xswiftc -warnings-as-errors` and all 37 tests pass with 0 errors/warnings.
+  - **Verify:** `swift test && swift build -Xswiftc -warnings-as-errors`
+  - **Files:** `docs/decisions/ADR-014-standalone-macos-packaging-and-dock-telemetry.md`
 
