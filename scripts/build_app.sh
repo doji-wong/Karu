@@ -54,26 +54,32 @@ if [ -f "${ROOT_DIR}/Packaging/AppIcon.icns" ]; then
     cp "${ROOT_DIR}/Packaging/AppIcon.icns" "${APP_BUNDLE}/Contents/Resources/AppIcon.icns"
 fi
 
-# Assemble Embedded Widget Extension (.appex)
-WIDGET_BUNDLE="${APP_BUNDLE}/Contents/PlugIns/KaruWidgets.appex"
-echo "🧩 Assembling Widget Extension at ${WIDGET_BUNDLE}..."
+# Assemble Embedded Widget Extension (.appex) in Contents/Extensions (macOS 13+) and Contents/PlugIns
+WIDGET_EXT_BUNDLE="${APP_BUNDLE}/Contents/Extensions/KaruWidgets.appex"
+WIDGET_PLUGIN_BUNDLE="${APP_BUNDLE}/Contents/PlugIns/KaruWidgets.appex"
+echo "🧩 Assembling Widget Extension at ${WIDGET_EXT_BUNDLE}..."
 
-mkdir -p "${WIDGET_BUNDLE}/Contents/MacOS"
-mkdir -p "${WIDGET_BUNDLE}/Contents/Resources"
+mkdir -p "${APP_BUNDLE}/Contents/Extensions"
+mkdir -p "${APP_BUNDLE}/Contents/PlugIns"
 
-cp "${WIDGET_BIN}" "${WIDGET_BUNDLE}/Contents/MacOS/KaruWidgets"
-chmod +x "${WIDGET_BUNDLE}/Contents/MacOS/KaruWidgets"
+for W_DIR in "${WIDGET_EXT_BUNDLE}" "${WIDGET_PLUGIN_BUNDLE}"; do
+    mkdir -p "${W_DIR}/Contents/MacOS"
+    mkdir -p "${W_DIR}/Contents/Resources"
 
-cp "${ROOT_DIR}/Packaging/WidgetInfo.plist" "${WIDGET_BUNDLE}/Contents/Info.plist"
-echo -n "XPC!KARU" > "${WIDGET_BUNDLE}/Contents/PkgInfo"
+    cp "${WIDGET_BIN}" "${W_DIR}/Contents/MacOS/KaruWidgets"
+    chmod +x "${W_DIR}/Contents/MacOS/KaruWidgets"
 
-if [ -f "${ROOT_DIR}/Packaging/AppIcon.icns" ]; then
-    cp "${ROOT_DIR}/Packaging/AppIcon.icns" "${WIDGET_BUNDLE}/Contents/Resources/AppIcon.icns"
-fi
+    cp "${ROOT_DIR}/Packaging/WidgetInfo.plist" "${W_DIR}/Contents/Info.plist"
+    echo -n "XPC!KARU" > "${W_DIR}/Contents/PkgInfo"
 
-# 4. Ad-Hoc Code Signing (Plugin first with sandbox entitlements, then parent App)
-echo "🔏 Code-signing widget extension..."
-codesign --force --sign - --entitlements "${ROOT_DIR}/Packaging/KaruWidgets.entitlements" "${WIDGET_BUNDLE}"
+    if [ -f "${ROOT_DIR}/Packaging/AppIcon.icns" ]; then
+        cp "${ROOT_DIR}/Packaging/AppIcon.icns" "${W_DIR}/Contents/Resources/AppIcon.icns"
+    fi
+
+    # 4. Ad-Hoc Code Signing for extension
+    echo "🔏 Code-signing widget extension at ${W_DIR}..."
+    codesign --force --sign - --entitlements "${ROOT_DIR}/Packaging/KaruWidgets.entitlements" "${W_DIR}"
+done
 
 echo "🔏 Code-signing application bundle..."
 codesign --force --deep --sign - "${APP_BUNDLE}"
