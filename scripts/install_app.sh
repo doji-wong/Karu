@@ -33,6 +33,11 @@ if [ -f "${LSREGISTER}" ]; then
     "${LSREGISTER}" -f -R -trusted "${APP_DEST}"
 fi
 
+if [ -d "${APP_DEST}/Contents/Extensions/KaruWidgets.appex" ]; then
+    pluginkit -a "${APP_DEST}/Contents/Extensions/KaruWidgets.appex" 2>/dev/null || true
+    pluginkit -e use -i com.karu.focustimer.widgets 2>/dev/null || true
+fi
+
 # 4. Flush widget daemon cache so macOS desktop discovers new widgets immediately
 echo "✨ Refreshing macOS WidgetKit cache..."
 killall widgetkitd 2>/dev/null || true
