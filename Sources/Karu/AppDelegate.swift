@@ -88,7 +88,14 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         self.notchController = NotchWindowController(engine: transitEngine)
 
         // 6. Initialize Floating HUD
-        self.floatingHUDPanel = FloatingHUDPanel(engine: transitEngine)
+        self.floatingHUDPanel = FloatingHUDPanel(
+            engine: transitEngine,
+            audioEngine: audioEngine,
+            onOpenGarage: { [weak self] in self?.openGarageWindow() },
+            onOpenSettings: { [weak self] in self?.openSettingsWindow() },
+            onOpenLogbook: { [weak self] in self?.openLogbookWindow() },
+            onOpenWidgetSimulator: { [weak self] in self?.openWidgetSimulatorWindow() }
+        )
 
         // 7. Wire Event-Driven Services
         distractionMonitor.onAppActivated = { [weak self] category, name, bundleId in

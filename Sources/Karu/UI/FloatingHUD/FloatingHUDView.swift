@@ -6,20 +6,35 @@ import KaruCore
 /// and Style 2 monochrome dual seat badge (strictly zero emojis), with optional 1-click expansion.
 public struct FloatingHUDView: View {
     @Bindable public var engine: TransitEngine
+    public var audioEngine: AudioEngine?
     public var onClose: (() -> Void)?
     public var onSizeChange: ((CGFloat, CGFloat) -> Void)?
+    public var onOpenGarage: (() -> Void)?
+    public var onOpenSettings: (() -> Void)?
+    public var onOpenLogbook: (() -> Void)?
+    public var onOpenWidgetSimulator: (() -> Void)?
 
     @State private var isHovering: Bool = false
     @State private var isExpandedToFullCard: Bool = false
 
     public init(
         engine: TransitEngine,
+        audioEngine: AudioEngine? = nil,
         onClose: (() -> Void)? = nil,
-        onSizeChange: ((CGFloat, CGFloat) -> Void)? = nil
+        onSizeChange: ((CGFloat, CGFloat) -> Void)? = nil,
+        onOpenGarage: (() -> Void)? = nil,
+        onOpenSettings: (() -> Void)? = nil,
+        onOpenLogbook: (() -> Void)? = nil,
+        onOpenWidgetSimulator: (() -> Void)? = nil
     ) {
         self.engine = engine
+        self.audioEngine = audioEngine
         self.onClose = onClose
         self.onSizeChange = onSizeChange
+        self.onOpenGarage = onOpenGarage
+        self.onOpenSettings = onOpenSettings
+        self.onOpenLogbook = onOpenLogbook
+        self.onOpenWidgetSimulator = onOpenWidgetSimulator
     }
 
     // MARK: - Telemetry Helpers
@@ -184,50 +199,60 @@ public struct FloatingHUDView: View {
 
     @ViewBuilder
     private var expandedCardView: some View {
-        ZStack(alignment: .topTrailing) {
+        ZStack(alignment: .top) {
             FocusFlightCard(
                 engine: engine,
+                audioEngine: audioEngine,
                 onToggleFloatingHUD: {
                     withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                         isExpandedToFullCard = false
                         onSizeChange?(390, 40)
                     }
+                },
+                onOpenGarage: onOpenGarage,
+                onOpenSettings: onOpenSettings,
+                onOpenLogbook: onOpenLogbook,
+                onOpenWidgetSimulator: onOpenWidgetSimulator,
+                onClose: onClose,
+                onHeightChange: { newHeight in
+                    onSizeChange?(372, newHeight)
                 }
             )
 
-            // Collapse & Close Header Overlay
-            HStack(spacing: 4) {
-                Button {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
-                        isExpandedToFullCard = false
-                        onSizeChange?(390, 40)
+            // Collapse & Close Header Overlay centered over the empty spacer
+            // Completely clear of AvionicsInsetPodView and route selectors
+            if isHovering {
+                HStack(spacing: 4) {
+                    Button {
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                            isExpandedToFullCard = false
+                            onSizeChange?(390, 40)
+                        }
+                    } label: {
+                        Image(systemName: "arrow.down.right.and.arrow.up.left")
+                            .font(.system(size: 7.5, weight: .bold))
+                            .foregroundStyle(KaruTheme.textMuted)
+                            .padding(4)
+                            .background(Circle().fill(KaruTheme.recessedTray))
                     }
-                } label: {
-                    Image(systemName: "arrow.down.right.and.arrow.up.left")
-                        .font(.system(size: 7.5, weight: .bold))
-                        .foregroundStyle(KaruTheme.textMuted)
-                        .padding(5)
-                        .background(Circle().fill(KaruTheme.recessedTray))
-                }
-                .buttonStyle(.plain)
-                .help("Collapse to Minimalist Progress Bar")
+                    .buttonStyle(.plain)
+                    .help("Collapse to Minimalist Progress Bar")
 
-                if isHovering {
                     Button {
                         onClose?()
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 7.5, weight: .bold))
                             .foregroundStyle(KaruTheme.textMuted)
-                            .padding(5)
+                            .padding(4)
                             .background(Circle().fill(KaruTheme.recessedTray))
                     }
                     .buttonStyle(.plain)
                     .help("Dismiss Floating HUD")
-                    .transition(.opacity)
                 }
+                .padding(.top, 6)
+                .transition(.opacity)
             }
-            .padding(10)
         }
     }
 }

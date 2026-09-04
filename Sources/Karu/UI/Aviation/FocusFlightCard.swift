@@ -22,6 +22,8 @@ public struct FocusFlightCard: View {
     public var onOpenSettings: (() -> Void)?
     public var onOpenLogbook: (() -> Void)?
     public var onOpenWidgetSimulator: (() -> Void)?
+    public var onClose: (() -> Void)?
+    public var onHeightChange: ((CGFloat) -> Void)?
     
     // Flight Route & Destination (Directly bound to engine)
     public var originAirport: DestinationAirport {
@@ -54,7 +56,9 @@ public struct FocusFlightCard: View {
         onOpenGarage: (() -> Void)? = nil,
         onOpenSettings: (() -> Void)? = nil,
         onOpenLogbook: (() -> Void)? = nil,
-        onOpenWidgetSimulator: (() -> Void)? = nil
+        onOpenWidgetSimulator: (() -> Void)? = nil,
+        onClose: (() -> Void)? = nil,
+        onHeightChange: ((CGFloat) -> Void)? = nil
     ) {
         self.engine = engine
         self.audioEngine = audioEngine
@@ -63,6 +67,8 @@ public struct FocusFlightCard: View {
         self.onOpenSettings = onOpenSettings
         self.onOpenLogbook = onOpenLogbook
         self.onOpenWidgetSimulator = onOpenWidgetSimulator
+        self.onClose = onClose
+        self.onHeightChange = onHeightChange
     }
     
     // MARK: - Seat & Mission Helpers
@@ -259,12 +265,17 @@ public struct FocusFlightCard: View {
         )
         .animation(.spring(response: 0.32, dampingFraction: 0.82), value: isExpanded)
         .animation(.spring(response: 0.32, dampingFraction: 0.82), value: activeDrawer)
+        .onChange(of: activeDrawer) { _, newDrawer in
+            let newHeight: CGFloat = (newDrawer != nil) ? 348 : 156
+            onHeightChange?(newHeight)
+        }
         .onHover { hovering in
             withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                 isHovering = hovering
             }
         }
         .onAppear {
+            onHeightChange?(currentCardHeight)
             if let seatClass = FocusSeatClass.find(code: engine.activeSeatCode) {
                 selectedSeat = seatClass
                 isCustomSeatSelected = false
@@ -571,6 +582,19 @@ public struct FocusFlightCard: View {
                 }
                 .buttonStyle(.plain)
                 .help("Settings & App Rules")
+                
+                if let onClose = onClose {
+                    Button {
+                        onClose()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 8.5, weight: .bold))
+                            .foregroundStyle(KaruTheme.textMuted)
+                            .padding(3)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Dismiss Floating HUD")
+                }
             }
         }
         .padding(.top, 2)
