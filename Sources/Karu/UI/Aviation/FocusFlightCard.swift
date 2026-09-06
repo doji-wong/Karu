@@ -141,15 +141,8 @@ public struct FocusFlightCard: View {
     }
     
     private var departureTimeString: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEE, h:mm a"
-        if let tz = TimeZone(identifier: originAirport.timeZoneIdentifier) {
-            formatter.timeZone = tz
-        }
-        if let session = engine.activeSession {
-            return formatter.string(from: session.startDate).uppercased()
-        }
-        return formatter.string(from: Date()).uppercased()
+        let date = engine.activeSession?.startDate ?? Date()
+        return KaruFormatters.formatFlightTimestamp(date, timeZoneIdentifier: originAirport.timeZoneIdentifier)
     }
     
     private var arrivalTimeString: String {
@@ -160,12 +153,7 @@ public struct FocusFlightCard: View {
             durationSecs = TimeInterval(selectedDurationMinutes * 60)
         }
         let arrivalDate = Date().addingTimeInterval(durationSecs)
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEE, h:mm a"
-        if let tz = TimeZone(identifier: destinationAirport.timeZoneIdentifier) {
-            formatter.timeZone = tz
-        }
-        return formatter.string(from: arrivalDate).uppercased()
+        return KaruFormatters.formatFlightTimestamp(arrivalDate, timeZoneIdentifier: destinationAirport.timeZoneIdentifier)
     }
     
     private var etaDisplayString: String {
@@ -176,13 +164,8 @@ public struct FocusFlightCard: View {
             durationSecs = TimeInterval(selectedDurationMinutes * 60)
         }
         let etaDate = Date().addingTimeInterval(durationSecs)
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h:mm a"
         let activeAirport = showDestinationTime ? destinationAirport : originAirport
-        if let tz = TimeZone(identifier: activeAirport.timeZoneIdentifier) {
-            formatter.timeZone = tz
-        }
-        return "ETA \(formatter.string(from: etaDate))"
+        return KaruFormatters.formatETA(etaDate, timeZoneIdentifier: activeAirport.timeZoneIdentifier)
     }
     
     private var timezoneDisplayString: String {

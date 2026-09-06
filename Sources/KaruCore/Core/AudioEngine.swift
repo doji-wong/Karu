@@ -40,6 +40,9 @@ public final class AudioEngine {
     private var stallBuffer: AVAudioPCMBuffer?
     private var seatbeltChimeBuffer: AVAudioPCMBuffer?
     
+    // In-memory buffer cache for O(1) instant vehicle switching without re-synthesis
+    private var bufferCache: [VehicleType: (cruise: AVAudioPCMBuffer, stall: AVAudioPCMBuffer)] = [:]
+    
     // Crossfade timer / task
     private var crossfadeTask: Task<Void, Never>?
 
@@ -68,9 +71,9 @@ public final class AudioEngine {
         chimePlayerNode.volume = 1.0
         mixerNode.outputVolume = isMuted ? 0.0 : masterVolume
 
-        // Generate aircraft-specific ambient buffers & chimes
-        loadAircraftBuffers(for: currentVehicle)
+        // Generate lightweight seatbelt chime immediately for alerts
         generateSeatbeltChimeBuffer()
+        // Note: Heavy cruise & stall ambient buffers are loaded lazily on demand
     }
 
     // MARK: - Lifecycle Controls
@@ -256,11 +259,33 @@ public final class AudioEngine {
 
     /// Change active aircraft soundscape.
     public func setVehicle(_ vehicle: VehicleType) {
+        let changed = (self.currentVehicle != vehicle)
         self.currentVehicle = vehicle
-        loadAircraftBuffers(for: vehicle)
-        if isRunning && (currentTransitState == .cruising || currentTransitState == .trafficStalled) && !isMuted {
+        
+        if let cached = bufferCache[vehicle] {
+            self.cruiseBuffer = cached.cruise
+            self.stallBuffer = cached.stall
+        } else if isRunning && (currentTransitState == .cruising || currentTransitState == .trafficStalled) {
+            loadAircraftBuffers(for: vehicle)
+        } else {
+            // Invalidate current buffers so ensureBuffersLoaded() will generate the new aircraft on flight start
+            self.cruiseBuffer = nil
+            self.stallBuffer = nil
+        }
+        
+        if changed && isRunning && (currentTransitState == .cruising || currentTransitState == .trafficStalled) && !isMuted {
             scheduleLoops()
         }
+    }
+
+    /// Ensure audio buffers are ready for the active vehicle, utilizing in-memory cache if available.
+    private func ensureBuffersLoaded() {
+        if let cached = bufferCache[currentVehicle] {
+            self.cruiseBuffer = cached.cruise
+            self.stallBuffer = cached.stall
+            return
+        }
+        loadAircraftBuffers(for: currentVehicle)
     }
 
     // MARK: - Volume & Crossfade Implementation
@@ -294,6 +319,9 @@ public final class AudioEngine {
     }
 
     private func scheduleLoops() {
+        if cruiseBuffer == nil || stallBuffer == nil {
+            ensureBuffersLoaded()
+        }
         guard let cBuf = cruiseBuffer, let sBuf = stallBuffer else { return }
 
         cruisePlayerNode.stop()
@@ -417,6 +445,10 @@ public final class AudioEngine {
                 }
             }
             self.stallBuffer = sBuf
+        }
+
+        if let c = cruiseBuffer, let s = stallBuffer {
+            bufferCache[aircraft] = (c, s)
         }
     }
 

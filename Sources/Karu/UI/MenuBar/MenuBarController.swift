@@ -226,35 +226,56 @@ public final class MenuBarController: NSObject {
         }
     }
 
+    private var lastSetSymbol: String?
+    private var lastSetTitle: String?
+
     public func updateStatusItemVisuals() {
         guard let button = statusItem?.button else { return }
 
+        let symbol: String
+        let desc: String
+        let title: String
+
         switch engine.state {
         case .idle:
-            button.image = NSImage(systemSymbolName: "airplane", accessibilityDescription: "Karu — Flight Standby")
-            button.title = ""
+            symbol = "airplane"
+            desc = "Karu — Flight Standby"
+            title = ""
 
         case .cruising:
-            button.image = NSImage(systemSymbolName: "airplane.departure", accessibilityDescription: "Karu — Cruising Flight")
+            symbol = "airplane.departure"
+            desc = "Karu — Cruising Flight"
             if let session = engine.activeSession, let target = session.targetDuration {
                 let remaining = max(0, target - session.cruisingDuration)
                 let mins = Int(remaining) / 60
-                button.title = " \(mins)m"
+                title = " \(mins)m"
             } else {
-                button.title = " 540 kts"
+                title = " 540 kts"
             }
 
         case .trafficStalled:
-            button.image = NSImage(systemSymbolName: "wind", accessibilityDescription: "Karu — In Turbulence")
-            button.title = " [TURBULENCE]"
+            symbol = "wind"
+            desc = "Karu — In Turbulence"
+            title = " [TURBULENCE]"
 
         case .pitStop:
-            button.image = NSImage(systemSymbolName: "pause.circle.fill", accessibilityDescription: "Karu — Gate Hold")
-            button.title = " [HOLD]"
+            symbol = "pause.circle.fill"
+            desc = "Karu — Gate Hold"
+            title = " [HOLD]"
 
         case .completed:
-            button.image = NSImage(systemSymbolName: "airplane.arrival", accessibilityDescription: "Karu — Landed")
-            button.title = " LANDED"
+            symbol = "airplane.arrival"
+            desc = "Karu — Landed"
+            title = " LANDED"
+        }
+
+        if symbol != lastSetSymbol {
+            button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: desc)
+            lastSetSymbol = symbol
+        }
+        if title != lastSetTitle {
+            button.title = title
+            lastSetTitle = title
         }
     }
 }

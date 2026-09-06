@@ -226,8 +226,6 @@ public struct LogbookView: View {
     }
 
     private func formattedDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d, h:mm a"
-        return formatter.string(from: date)
+        return KaruFormatters.formatLogbookDate(date)
     }
 }

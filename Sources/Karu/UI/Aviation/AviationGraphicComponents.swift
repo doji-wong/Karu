@@ -57,11 +57,11 @@ public struct LuminousSliderTrackView: View {
                         .padding(.trailing, 12)
                 }
 
-                // 3. Ambient White Glow Spotlight beneath the active capsule
+                // 3. Ambient White Glow Spotlight beneath the active capsule (GPU-composited shadow)
                 Capsule(style: .continuous)
-                    .fill(Color.white.opacity(0.25))
+                    .fill(Color.white.opacity(0.15))
                     .frame(width: activeWidth, height: trackHeight)
-                    .blur(radius: 6)
+                    .shadow(color: Color.white.opacity(0.35), radius: 6, x: 0, y: 0)
                     .allowsHitTesting(false)
 
                 // 4. Solid Crisp White Slider Capsule with Jet Black Airplane Glyph

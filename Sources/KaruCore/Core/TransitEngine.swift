@@ -28,11 +28,13 @@ public final class TransitEngine {
     
     // Internal timer for live flights
     private var timer: Timer?
+    private var lastReportedMinute: Int = -1
     
     // Callbacks for decoupled listeners (AudioEngine, UI, Storage)
     public var onStateChanged: ((TransitState, TransitState) -> Void)?
     public var onTripCompleted: ((TripSession) -> Void)?
     public var onIncidentLogged: ((TurbulenceEncounter) -> Void)?
+    public var onMinuteTick: ((TransitEngine) -> Void)?
 
     public init() {}
 
@@ -53,6 +55,7 @@ public final class TransitEngine {
         // Reset any existing session
         stopTimer()
         activeTurbulence = nil
+        lastReportedMinute = -1
         
         let target = customDuration ?? preset.targetDuration
         let session = TripSession(
@@ -268,6 +271,15 @@ public final class TransitEngine {
         }
 
         self.activeSession = session
+
+        // Throttled minute-boundary trigger: fires only when the remaining minute counter changes
+        let target = session.targetDuration ?? 1500
+        let remaining = max(0, target - session.cruisingDuration)
+        let currentMinute = Int(ceil(remaining / 60.0))
+        if currentMinute != lastReportedMinute {
+            self.lastReportedMinute = currentMinute
+            onMinuteTick?(self)
+        }
     }
 
     // MARK: - Helper Methods

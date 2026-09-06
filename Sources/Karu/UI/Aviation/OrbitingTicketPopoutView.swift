@@ -34,18 +34,12 @@ public struct OrbitingTicketPopoutView: View {
     }
     
     private var formattedDateString: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy/MM/dd"
-        return formatter.string(from: Date())
+        return KaruFormatters.formatTicketDate()
     }
     
     private var calculatedDistanceFormatted: String {
         let km = originAirport.distanceKm(to: destinationAirport)
-        let numberFormatter = NumberFormatter()
-        numberFormatter.groupingSeparator = " "
-        numberFormatter.numberStyle = .decimal
-        let formatted = numberFormatter.string(from: NSNumber(value: km)) ?? "\(km)"
-        return "\(formatted) km"
+        return KaruFormatters.formatDistanceKm(km)
     }
     
     private var seatCodeFormatted: String {

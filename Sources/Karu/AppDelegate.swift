@@ -157,6 +157,13 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        transitEngine.onMinuteTick = { [weak self] _ in
+            Task { @MainActor in
+                self?.menuBarController?.updateStatusItemVisuals()
+                self?.dockTelemetryManager?.updateDockTile(force: false)
+            }
+        }
+
         // Listen for Widget AppIntent triggers
         NotificationCenter.default.addObserver(forName: .karuWidgetDidRequestTakeoff, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in
