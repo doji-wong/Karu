@@ -10,8 +10,13 @@ public final class MenuBarPanel: NSPanel {
     private var localMonitor: Any?
     private weak var statusButton: NSStatusBarButton?
     public private(set) var showTimestamp: TimeInterval = 0
+    private var currentHeight: CGFloat = 156
 
     public var onDidHide: (() -> Void)?
+
+    public override var canBecomeKey: Bool {
+        return true
+    }
 
     public init(contentView: NSView) {
         super.init(
@@ -33,7 +38,7 @@ public final class MenuBarPanel: NSPanel {
         guard let buttonWindow = button.window else { return }
         let buttonScreenRect = buttonWindow.convertToScreen(button.bounds)
         let panelWidth: CGFloat = 372
-        let panelHeight: CGFloat = 156
+        let panelHeight: CGFloat = currentHeight
         
         var x = buttonScreenRect.midX - (panelWidth / 2)
         if let screen = buttonWindow.screen {
@@ -43,10 +48,25 @@ public final class MenuBarPanel: NSPanel {
         }
         let y = buttonScreenRect.minY - panelHeight - 6
         
-        self.setFrameOrigin(NSPoint(x: x, y: y))
+        self.setFrame(NSRect(x: x, y: y, width: panelWidth, height: panelHeight), display: true)
         self.makeKeyAndOrderFront(nil)
         self.showTimestamp = CACurrentMediaTime()
         startMonitoring()
+    }
+
+    public func updatePanelSize(width: CGFloat, height: CGFloat, animated: Bool = true) {
+        self.currentHeight = height
+        guard isVisible, let button = statusButton, let buttonWindow = button.window else { return }
+        let buttonScreenRect = buttonWindow.convertToScreen(button.bounds)
+        var x = buttonScreenRect.midX - (width / 2)
+        if let screen = buttonWindow.screen {
+            let maxRight = screen.visibleFrame.maxX - width - 8
+            let minLeft = screen.visibleFrame.minX + 8
+            x = max(minLeft, min(x, maxRight))
+        }
+        let y = buttonScreenRect.minY - height - 6
+        let newFrame = NSRect(x: x, y: y, width: width, height: height)
+        self.setFrame(newFrame, display: true, animate: animated)
     }
 
     public func hide() {
@@ -192,6 +212,9 @@ public final class MenuBarController: NSObject {
             onOpenWidgetSimulator: { [weak self] in
                 self?.menuBarPanel?.hide()
                 self?.onOpenWidgetSimulator?()
+            },
+            onHeightChange: { [weak self] newHeight in
+                self?.menuBarPanel?.updatePanelSize(width: 372, height: newHeight)
             }
         )
 
@@ -205,6 +228,13 @@ public final class MenuBarController: NSObject {
             self?.onPopoverDismissed?()
         }
         self.menuBarPanel = panel
+    }
+
+    public func showPopover() {
+        guard let button = statusItem?.button, let panel = menuBarPanel else { return }
+        if !panel.isVisible {
+            panel.show(relativeTo: button)
+        }
     }
 
     public func hidePopover() {

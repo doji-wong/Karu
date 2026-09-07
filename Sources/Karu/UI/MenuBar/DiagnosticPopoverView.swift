@@ -11,6 +11,7 @@ public struct DiagnosticPopoverView: View {
     public var onOpenSettings: (() -> Void)?
     public var onOpenLogbook: (() -> Void)?
     public var onOpenWidgetSimulator: (() -> Void)?
+    public var onHeightChange: ((CGFloat) -> Void)?
 
     public init(
         engine: TransitEngine,
@@ -20,7 +21,8 @@ public struct DiagnosticPopoverView: View {
         onOpenGarage: (() -> Void)? = nil,
         onOpenSettings: (() -> Void)? = nil,
         onOpenLogbook: (() -> Void)? = nil,
-        onOpenWidgetSimulator: (() -> Void)? = nil
+        onOpenWidgetSimulator: (() -> Void)? = nil,
+        onHeightChange: ((CGFloat) -> Void)? = nil
     ) {
         self.engine = engine
         self.audioEngine = audioEngine
@@ -30,6 +32,7 @@ public struct DiagnosticPopoverView: View {
         self.onOpenSettings = onOpenSettings
         self.onOpenLogbook = onOpenLogbook
         self.onOpenWidgetSimulator = onOpenWidgetSimulator
+        self.onHeightChange = onHeightChange
     }
 
     public var body: some View {
@@ -37,11 +40,13 @@ public struct DiagnosticPopoverView: View {
             FocusFlightCard(
                 engine: engine,
                 audioEngine: audioEngine,
+                storage: storage,
                 onToggleFloatingHUD: onToggleFloatingHUD,
                 onOpenGarage: onOpenGarage,
                 onOpenSettings: onOpenSettings,
                 onOpenLogbook: onOpenLogbook,
-                onOpenWidgetSimulator: onOpenWidgetSimulator
+                onOpenWidgetSimulator: onOpenWidgetSimulator,
+                onHeightChange: onHeightChange
             )
             Spacer(minLength: 0)
         }

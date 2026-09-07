@@ -331,7 +331,13 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     // MARK: - Dock Action Handlers
-    @objc private func dockTakeoff() { transitEngine.startFlight() }
+    @objc private func dockTakeoff() {
+        if transitEngine.state == .idle {
+            menuBarController?.showPopover()
+        } else {
+            transitEngine.startFlight()
+        }
+    }
     @objc private func dockToggleGateHold() { transitEngine.toggleGateHold() }
     @objc private func dockCompleteFlight() { transitEngine.completeTrip() }
     @objc private func dockAbortFlight() { transitEngine.cancelTrip() }
