@@ -186,4 +186,39 @@ struct ModelTests {
         #expect(decoded.presentationMode.displayName == "Standard Cockpit (Dock + Menu Bar)")
         #expect(decoded.dockBadgeStyle.displayName == "Remaining Time (e.g. 24m)")
     }
+
+    @Test("KaruPreferences destinationDurations defaults, mutation and decoding resilience")
+    func destinationDurationsPreferences() throws {
+        var prefs = KaruPreferences()
+        #expect(prefs.targetDurationMinutes(for: "HND") == 25)
+        #expect(prefs.targetDurationMinutes(for: "LHR") == 45)
+        #expect(prefs.targetDurationMinutes(for: "UNKNOWN") == 25)
+
+        // Mutate destination duration
+        prefs.setTargetDurationMinutes(60, for: "HND")
+        prefs.setTargetDurationMinutes(90, for: "LHR")
+        #expect(prefs.targetDurationMinutes(for: "HND") == 60)
+        #expect(prefs.targetDurationMinutes(for: "LHR") == 90)
+
+        // Encode and decode
+        let data = try JSONEncoder().encode(prefs)
+        let decoded = try JSONDecoder().decode(KaruPreferences.self, from: data)
+        #expect(decoded.targetDurationMinutes(for: "HND") == 60)
+        #expect(decoded.targetDurationMinutes(for: "LHR") == 90)
+
+        // Backward compatibility: decode JSON without destinationDurations
+        let legacyJSON = """
+        {
+            "hasCompletedOnboarding": true,
+            "presentationMode": "standardDock",
+            "dockBadgeStyle": "timeRemaining",
+            "enableDockTileGraphics": true,
+            "dailyFlightGoalMinutes": 300,
+            "selectedMissionRole": "developer",
+            "launchAtLogin": false
+        }
+        """
+        let legacyDecoded = try JSONDecoder().decode(KaruPreferences.self, from: Data(legacyJSON.utf8))
+        #expect(legacyDecoded.targetDurationMinutes(for: "HND") == 25)
+    }
 }

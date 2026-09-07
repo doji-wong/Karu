@@ -17,6 +17,7 @@ public final class TransitEngine {
     public private(set) var activeSeatCode: String = "5F"
     public private(set) var activeTaskTitle: String = "CODING"
     public private(set) var activeSeatIcon: String = "curlybraces"
+    public private(set) var activeTargetDurationMinutes: Int = 25
     
     public var activeVehicle: AircraftType {
         get { activeAircraft }
@@ -58,6 +59,9 @@ public final class TransitEngine {
         lastReportedMinute = -1
         
         let target = customDuration ?? preset.targetDuration
+        if let t = target {
+            self.activeTargetDurationMinutes = max(5, Int(t / 60))
+        }
         let session = TripSession(
             habitId: habit?.id,
             habitName: habit?.name,
@@ -132,6 +136,15 @@ public final class TransitEngine {
         if var session = activeSession {
             session.originAirportCode = origin
             session.destinationAirportCode = destination
+            self.activeSession = session
+        }
+    }
+
+    /// Set the target focus duration in minutes for the active flight / destination.
+    public func setTargetDurationMinutes(_ minutes: Int) {
+        self.activeTargetDurationMinutes = max(5, minutes)
+        if var session = activeSession, state != .idle {
+            session.targetDuration = TimeInterval(self.activeTargetDurationMinutes * 60)
             self.activeSession = session
         }
     }
@@ -297,11 +310,11 @@ public final class TransitEngine {
 
     // MARK: - Widget Telemetry & Control Helpers
 
-    /// Start standard flight with current origin, destination, seat, and aircraft.
+    /// Start standard flight with current origin, destination, seat, aircraft, and active duration.
     public func startFlight() {
         startTrip(
             preset: .sprint25,
-            customDuration: nil,
+            customDuration: TimeInterval(activeTargetDurationMinutes * 60),
             habit: currentHabit,
             aircraft: activeAircraft,
             origin: activeOrigin,

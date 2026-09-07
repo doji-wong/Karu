@@ -180,4 +180,25 @@ struct TransitEngineTests {
         #expect(engine.activeSession?.originAirportCode == "SIN")
         #expect(engine.activeSession?.destinationAirportCode == "LHR")
     }
+
+    @Test("Target duration updates mutate activeTargetDurationMinutes and startFlight respects custom duration")
+    @MainActor
+    func targetDurationAndFlightDispatch() {
+        let engine = TransitEngine()
+        #expect(engine.activeTargetDurationMinutes == 25)
+
+        // 1. Update target duration while idle
+        engine.setTargetDurationMinutes(45)
+        #expect(engine.activeTargetDurationMinutes == 45)
+
+        // 2. Start flight via startFlight() and verify target duration is 45 minutes (2700s)
+        engine.startFlight()
+        #expect(engine.state == .cruising)
+        #expect(engine.activeSession?.targetDuration == 2700.0)
+
+        // 3. Update target duration while in flight
+        engine.setTargetDurationMinutes(60)
+        #expect(engine.activeTargetDurationMinutes == 60)
+        #expect(engine.activeSession?.targetDuration == 3600.0)
+    }
 }

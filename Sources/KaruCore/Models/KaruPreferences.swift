@@ -82,6 +82,26 @@ public struct KaruPreferences: Codable, Sendable, Equatable {
     public var dailyFlightGoalMinutes: Int
     public var selectedMissionRole: PilotRoleMission
     public var launchAtLogin: Bool
+    public var destinationDurations: [String: Int]
+
+    public static let defaultDestinationDurations: [String: Int] = [
+        "CTS": 25,
+        "HND": 25,
+        "CDG": 30,
+        "LHR": 45,
+        "JFK": 50,
+        "SFO": 50,
+        "YYZ": 45,
+        "MNL": 30,
+        "SIN": 60,
+        "SYD": 60,
+        "ICN": 35,
+        "ZRH": 40,
+        "KEF": 45,
+        "VKO": 75,
+        "MEX": 90,
+        "AKL": 90
+    ]
 
     public init(
         hasCompletedOnboarding: Bool = false,
@@ -90,7 +110,8 @@ public struct KaruPreferences: Codable, Sendable, Equatable {
         enableDockTileGraphics: Bool = true,
         dailyFlightGoalMinutes: Int = 240, // 4 hours standard focus quota
         selectedMissionRole: PilotRoleMission = .developer,
-        launchAtLogin: Bool = false
+        launchAtLogin: Bool = false,
+        destinationDurations: [String: Int] = KaruPreferences.defaultDestinationDurations
     ) {
         self.hasCompletedOnboarding = hasCompletedOnboarding
         self.presentationMode = presentationMode
@@ -99,5 +120,37 @@ public struct KaruPreferences: Codable, Sendable, Equatable {
         self.dailyFlightGoalMinutes = dailyFlightGoalMinutes
         self.selectedMissionRole = selectedMissionRole
         self.launchAtLogin = launchAtLogin
+        self.destinationDurations = destinationDurations
+    }
+
+    public enum CodingKeys: String, CodingKey {
+        case hasCompletedOnboarding
+        case presentationMode
+        case dockBadgeStyle
+        case enableDockTileGraphics
+        case dailyFlightGoalMinutes
+        case selectedMissionRole
+        case launchAtLogin
+        case destinationDurations
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.hasCompletedOnboarding = try container.decodeIfPresent(Bool.self, forKey: .hasCompletedOnboarding) ?? false
+        self.presentationMode = try container.decodeIfPresent(AppPresentationMode.self, forKey: .presentationMode) ?? .standardDock
+        self.dockBadgeStyle = try container.decodeIfPresent(DockBadgeStyle.self, forKey: .dockBadgeStyle) ?? .timeRemaining
+        self.enableDockTileGraphics = try container.decodeIfPresent(Bool.self, forKey: .enableDockTileGraphics) ?? true
+        self.dailyFlightGoalMinutes = try container.decodeIfPresent(Int.self, forKey: .dailyFlightGoalMinutes) ?? 240
+        self.selectedMissionRole = try container.decodeIfPresent(PilotRoleMission.self, forKey: .selectedMissionRole) ?? .developer
+        self.launchAtLogin = try container.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? false
+        self.destinationDurations = try container.decodeIfPresent([String: Int].self, forKey: .destinationDurations) ?? KaruPreferences.defaultDestinationDurations
+    }
+
+    public func targetDurationMinutes(for destinationCode: String) -> Int {
+        destinationDurations[destinationCode.uppercased()] ?? Self.defaultDestinationDurations[destinationCode.uppercased()] ?? 25
+    }
+
+    public mutating func setTargetDurationMinutes(_ minutes: Int, for destinationCode: String) {
+        destinationDurations[destinationCode.uppercased()] = max(5, minutes)
     }
 }
