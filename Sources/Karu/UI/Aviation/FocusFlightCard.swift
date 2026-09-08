@@ -123,7 +123,7 @@ public struct FocusFlightCard: View {
     
     private var currentCardHeight: CGFloat {
         if activeDrawer == .preFlightDispatch {
-            return 396
+            return isCustomSeatSelected ? 456 : 420
         } else if activeDrawer != nil {
             return 348
         } else if isExpanded {
@@ -309,18 +309,13 @@ public struct FocusFlightCard: View {
         )
         .animation(.spring(response: 0.32, dampingFraction: 0.82), value: isExpanded)
         .animation(.spring(response: 0.32, dampingFraction: 0.82), value: activeDrawer)
-        .onChange(of: activeDrawer) { _, newDrawer in
-            let newHeight: CGFloat
-            if newDrawer == .preFlightDispatch {
-                newHeight = 396
-            } else if newDrawer != nil {
-                newHeight = 348
-            } else if isExpanded {
-                newHeight = 156
-            } else {
-                newHeight = 122
+        .onChange(of: activeDrawer) { _, _ in
+            onHeightChange?(currentCardHeight)
+        }
+        .onChange(of: isCustomSeatSelected) { _, _ in
+            if activeDrawer == .preFlightDispatch {
+                onHeightChange?(currentCardHeight)
             }
-            onHeightChange?(newHeight)
         }
         .onHover { hovering in
             withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
@@ -856,10 +851,144 @@ public struct FocusFlightCard: View {
                     .help("Change Arrival Destination")
                 }
 
-                // 2. Dedicated Destination Time Control Box
+                // 2. Seat & Cabin Class Selection Strip
                 VStack(alignment: .leading, spacing: 5) {
                     HStack {
-                        Text("03 / TIME CONTROL (\(destinationAirport.code) · \(destinationAirport.cityName.uppercased()))")
+                        Text("03 / SEAT & CABIN CLASS")
+                            .font(.system(size: 7.5, weight: .black, design: .monospaced))
+                            .foregroundStyle(Color.white.opacity(0.9))
+
+                        Spacer()
+
+                        Text("SEAT \(currentSeatCode) · \(currentTaskTitle)")
+                            .font(.system(size: 7.5, weight: .bold, design: .monospaced))
+                            .foregroundStyle(Color(hex: 0xFF5C00))
+                            .lineLimit(1)
+                    }
+
+                    // Horizontal Seat Selector Strip
+                    HStack(spacing: 3) {
+                        ForEach(FocusSeatClass.allCases) { seat in
+                            let isSelected = !isCustomSeatSelected && (currentSeatCode == seat.rawValue || selectedSeat == seat)
+                            Button {
+                                withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                                    selectedSeat = seat
+                                    isCustomSeatSelected = false
+                                    engine.updateSeat(seatClass: seat)
+                                }
+                            } label: {
+                                HStack(spacing: 2) {
+                                    Image(systemName: seat.iconSymbol)
+                                        .font(.system(size: 7, weight: .bold))
+                                    Text(seat.rawValue)
+                                        .font(.system(size: 8, weight: isSelected ? .black : .bold, design: .monospaced))
+                                    Text(seat.shortTaskTitle)
+                                        .font(.system(size: 6.5, weight: isSelected ? .heavy : .medium))
+                                        .lineLimit(1)
+                                }
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 3.5)
+                                .frame(maxWidth: .infinity)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                        .fill(isSelected ? Color.white : Color.white.opacity(0.08))
+                                )
+                                .foregroundStyle(isSelected ? Color.black : Color.white)
+                            }
+                            .buttonStyle(.plain)
+                            .help("\(seat.title) (\(seat.seatCode)) — \(seat.cabinClass)")
+                        }
+
+                        // Custom 7X Seat Pill
+                        let isSelectedCustom = isCustomSeatSelected || (FocusSeatClass.find(code: currentSeatCode) == nil)
+                        Button {
+                            withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                                isCustomSeatSelected = true
+                                let code = customSeatCode.isEmpty ? "7X" : customSeatCode.uppercased()
+                                let title = customTaskName.isEmpty ? "CUSTOM" : customTaskName.uppercased()
+                                engine.updateSeat(seatCode: code, taskTitle: title, seatIcon: customSeatIcon)
+                            }
+                        } label: {
+                            HStack(spacing: 2) {
+                                Image(systemName: customSeatIcon)
+                                    .font(.system(size: 7, weight: .bold))
+                                Text(customSeatCode.isEmpty ? "7X" : customSeatCode.uppercased())
+                                    .font(.system(size: 8, weight: isSelectedCustom ? .black : .bold, design: .monospaced))
+                                Text("CUSTOM")
+                                    .font(.system(size: 6.5, weight: isSelectedCustom ? .heavy : .medium))
+                                    .lineLimit(1)
+                            }
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 3.5)
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                    .fill(isSelectedCustom ? Color.white : Color.white.opacity(0.08))
+                            )
+                            .foregroundStyle(isSelectedCustom ? Color.black : Color.white)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Custom Seat & Mission Objective")
+                    }
+
+                    // Expandable Custom Mission Deck
+                    if isCustomSeatSelected {
+                        HStack(spacing: 6) {
+                            HStack(spacing: 3) {
+                                Text("SEAT")
+                                    .font(.system(size: 7, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(KaruTheme.textMuted)
+                                TextField("7X", text: $customSeatCode)
+                                    .textFieldStyle(.plain)
+                                    .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(Color.white)
+                                    .frame(width: 28)
+                                    .onChange(of: customSeatCode) { _, newCode in
+                                        let code = newCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+                                        let title = customTaskName.isEmpty ? "CUSTOM" : customTaskName.uppercased()
+                                        engine.updateSeat(seatCode: code.isEmpty ? "7X" : code, taskTitle: title, seatIcon: customSeatIcon)
+                                    }
+                            }
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Color.white.opacity(0.06))
+                            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+
+                            HStack(spacing: 3) {
+                                Text("MISSION")
+                                    .font(.system(size: 7, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(KaruTheme.textMuted)
+                                TextField("Task title / objective...", text: $customTaskName)
+                                    .textFieldStyle(.plain)
+                                    .font(.system(size: 8.5, weight: .medium))
+                                    .foregroundStyle(Color.white)
+                                    .onChange(of: customTaskName) { _, newTitle in
+                                        let code = customSeatCode.isEmpty ? "7X" : customSeatCode.uppercased()
+                                        let title = newTitle.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+                                        engine.updateSeat(seatCode: code, taskTitle: title.isEmpty ? "CUSTOM" : title, seatIcon: customSeatIcon)
+                                    }
+                            }
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Color.white.opacity(0.06))
+                            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                        }
+                        .padding(.top, 1)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+                }
+                .padding(8)
+                .background(KaruTheme.surfaceElevated)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.06), lineWidth: 0.5)
+                )
+
+                // 3. Dedicated Destination Time Control Box
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack {
+                        Text("04 / TIME CONTROL (\(destinationAirport.code) · \(destinationAirport.cityName.uppercased()))")
                             .font(.system(size: 7.5, weight: .black, design: .monospaced))
                             .foregroundStyle(Color.white.opacity(0.9))
 
@@ -954,7 +1083,7 @@ public struct FocusFlightCard: View {
                         .strokeBorder(Color.white.opacity(0.06), lineWidth: 0.5)
                 )
 
-                // 3. Clear For Takeoff Action
+                // 4. Clear For Takeoff Action
                 Button {
                     engine.startTrip(
                         preset: .sprint25,
