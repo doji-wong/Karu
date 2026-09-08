@@ -123,9 +123,12 @@ public struct FocusFlightCard: View {
     
     private var currentCardHeight: CGFloat {
         if activeDrawer == .preFlightDispatch {
-            return isCustomSeatSelected ? 456 : 420
+            if dispatchAirportTarget != nil {
+                return 440
+            }
+            return isCustomSeatSelected ? 518 : 486
         } else if activeDrawer != nil {
-            return 348
+            return 368
         } else if isExpanded {
             return 156
         } else {
@@ -302,15 +305,22 @@ public struct FocusFlightCard: View {
             }
             .padding(16)
         }
-        .frame(width: 372, height: currentCardHeight)
+        .frame(width: 372, height: currentCardHeight, alignment: .top)
         .clipShape(
             RoundedRectangle(cornerRadius: KaruTheme.radiusCard, style: .continuous),
             style: FillStyle(antialiased: true)
         )
         .animation(.spring(response: 0.32, dampingFraction: 0.82), value: isExpanded)
         .animation(.spring(response: 0.32, dampingFraction: 0.82), value: activeDrawer)
+        .animation(.spring(response: 0.32, dampingFraction: 0.82), value: dispatchAirportTarget)
+        .animation(.spring(response: 0.32, dampingFraction: 0.82), value: isCustomSeatSelected)
         .onChange(of: activeDrawer) { _, _ in
             onHeightChange?(currentCardHeight)
+        }
+        .onChange(of: dispatchAirportTarget) { _, _ in
+            if activeDrawer == .preFlightDispatch {
+                onHeightChange?(currentCardHeight)
+            }
         }
         .onChange(of: isCustomSeatSelected) { _, _ in
             if activeDrawer == .preFlightDispatch {
@@ -877,17 +887,14 @@ public struct FocusFlightCard: View {
                                     engine.updateSeat(seatClass: seat)
                                 }
                             } label: {
-                                HStack(spacing: 2) {
+                                HStack(spacing: 3) {
                                     Image(systemName: seat.iconSymbol)
-                                        .font(.system(size: 7, weight: .bold))
+                                        .font(.system(size: 7.5, weight: .bold))
                                     Text(seat.rawValue)
                                         .font(.system(size: 8, weight: isSelected ? .black : .bold, design: .monospaced))
-                                    Text(seat.shortTaskTitle)
-                                        .font(.system(size: 6.5, weight: isSelected ? .heavy : .medium))
-                                        .lineLimit(1)
                                 }
                                 .padding(.horizontal, 4)
-                                .padding(.vertical, 3.5)
+                                .padding(.vertical, 4)
                                 .frame(maxWidth: .infinity)
                                 .background(
                                     RoundedRectangle(cornerRadius: 4, style: .continuous)
@@ -909,17 +916,14 @@ public struct FocusFlightCard: View {
                                 engine.updateSeat(seatCode: code, taskTitle: title, seatIcon: customSeatIcon)
                             }
                         } label: {
-                            HStack(spacing: 2) {
+                            HStack(spacing: 3) {
                                 Image(systemName: customSeatIcon)
-                                    .font(.system(size: 7, weight: .bold))
+                                    .font(.system(size: 7.5, weight: .bold))
                                 Text(customSeatCode.isEmpty ? "7X" : customSeatCode.uppercased())
                                     .font(.system(size: 8, weight: isSelectedCustom ? .black : .bold, design: .monospaced))
-                                Text("CUSTOM")
-                                    .font(.system(size: 6.5, weight: isSelectedCustom ? .heavy : .medium))
-                                    .lineLimit(1)
                             }
                             .padding(.horizontal, 4)
-                            .padding(.vertical, 3.5)
+                            .padding(.vertical, 4)
                             .frame(maxWidth: .infinity)
                             .background(
                                 RoundedRectangle(cornerRadius: 4, style: .continuous)
@@ -1100,7 +1104,7 @@ public struct FocusFlightCard: View {
                         dispatchAirportTarget = nil
                     }
                 } label: {
-                    HStack(spacing: 5) {
+                    HStack(spacing: 5.5) {
                         Image(systemName: "airplane.departure")
                             .font(.system(size: 9.5, weight: .heavy))
                         Text("CLEAR FOR TAKEOFF")
@@ -1108,7 +1112,7 @@ public struct FocusFlightCard: View {
                     }
                     .foregroundStyle(Color.black)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6.5)
+                    .padding(.vertical, 7.5)
                     .background(
                         Capsule()
                             .fill(Color.white)

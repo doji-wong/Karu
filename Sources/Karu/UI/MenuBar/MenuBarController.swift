@@ -46,7 +46,13 @@ public final class MenuBarPanel: NSPanel {
             let minLeft = screen.visibleFrame.minX + 8
             x = max(minLeft, min(x, maxRight))
         }
-        let y = buttonScreenRect.minY - panelHeight - 6
+        var y = buttonScreenRect.minY - panelHeight - 6
+        if let screen = buttonWindow.screen {
+            let minBottom = screen.visibleFrame.minY + 8
+            if y < minBottom {
+                y = minBottom
+            }
+        }
         
         self.setFrame(NSRect(x: x, y: y, width: panelWidth, height: panelHeight), display: true)
         self.makeKeyAndOrderFront(nil)
@@ -64,7 +70,13 @@ public final class MenuBarPanel: NSPanel {
             let minLeft = screen.visibleFrame.minX + 8
             x = max(minLeft, min(x, maxRight))
         }
-        let y = buttonScreenRect.minY - height - 6
+        var y = buttonScreenRect.minY - height - 6
+        if let screen = buttonWindow.screen {
+            let minBottom = screen.visibleFrame.minY + 8
+            if y < minBottom {
+                y = minBottom
+            }
+        }
         let newFrame = NSRect(x: x, y: y, width: width, height: height)
         self.setFrame(newFrame, display: true, animate: animated)
     }
