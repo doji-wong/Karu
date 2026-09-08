@@ -201,4 +201,37 @@ struct TransitEngineTests {
         #expect(engine.activeTargetDurationMinutes == 60)
         #expect(engine.activeSession?.targetDuration == 3600.0)
     }
+
+    @Test("Pre-flight dispatch clearance with route, custom duration, and chosen seat starts cruising session accurately")
+    @MainActor
+    func preFlightDispatchClearance() {
+        let engine = TransitEngine()
+        
+        // Dispatch parameters: Origin YYZ, Destination HND, Custom Seat 7X "AUTH ENGINE", 45 minutes
+        let origin = "YYZ"
+        let destination = "HND"
+        let seatCode = "7X"
+        let taskTitle = "AUTH ENGINE"
+        let seatIcon = "terminal"
+        let durationMinutes = 45
+        
+        engine.startTrip(
+            preset: .sprint25,
+            customDuration: TimeInterval(durationMinutes * 60),
+            origin: origin,
+            destination: destination,
+            seatCode: seatCode,
+            taskTitle: taskTitle,
+            seatIcon: seatIcon
+        )
+        
+        #expect(engine.state == .cruising)
+        #expect(engine.activeSession?.originAirportCode == "YYZ")
+        #expect(engine.activeSession?.destinationAirportCode == "HND")
+        #expect(engine.activeSession?.seatCode == "7X")
+        #expect(engine.activeSession?.taskTitle == "AUTH ENGINE")
+        #expect(engine.activeSession?.seatIcon == "terminal")
+        #expect(engine.activeSession?.targetDuration == 2700.0)
+    }
 }
+
