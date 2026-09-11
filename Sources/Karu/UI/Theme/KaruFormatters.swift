@@ -75,4 +75,17 @@ public enum KaruFormatters {
         let formatted = distanceFormatter.string(from: NSNumber(value: km)) ?? "\(km)"
         return "\(formatted) km"
     }
+
+    /// Formats countdown remaining time with a negative prefix (e.g., "-25M 00S" or "-1H 15M").
+    public static func formatNegativeRemainingTime(_ remainingSeconds: TimeInterval) -> String {
+        let remaining = max(0.0, remainingSeconds)
+        let hours = Int(remaining) / 3600
+        let mins = (Int(remaining) % 3600) / 60
+        let secs = Int(remaining) % 60
+        if hours > 0 {
+            return String(format: "-%dH %02dM", hours, mins)
+        } else {
+            return String(format: "-%02dM %02dS", mins, secs)
+        }
+    }
 }

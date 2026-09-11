@@ -48,15 +48,7 @@ public struct FloatingHUDView: View {
 
     private var remainingTimeNegativeFormatted: String {
         if let session = engine.activeSession, let target = session.targetDuration {
-            let remaining: Double = max(0.0, target - session.cruisingDuration)
-            let hours: Int = Int(remaining) / 3600
-            let mins: Int = (Int(remaining) % 3600) / 60
-            let secs: Int = Int(remaining) % 60
-            if hours > 0 {
-                return String(format: "-%dH %02dM", hours, mins)
-            } else {
-                return String(format: "-%02dM %02dS", mins, secs)
-            }
+            return KaruFormatters.formatNegativeRemainingTime(target - session.cruisingDuration)
         }
         return "-25M 00S"
     }
