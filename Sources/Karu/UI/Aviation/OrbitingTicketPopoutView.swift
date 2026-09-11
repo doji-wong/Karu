@@ -43,13 +43,7 @@ public struct OrbitingTicketPopoutView: View {
     }
     
     private var seatCodeFormatted: String {
-        switch selectedSeat {
-        case .deepWork: return "01A"
-        case .study: return "02B"
-        case .research: return "03C"
-        case .read: return "04D"
-        case .code: return "07F"
-        }
+        selectedSeat.rawValue.count == 2 ? "0\(selectedSeat.rawValue)" : selectedSeat.rawValue
     }
     
     public var body: some View {
