@@ -19,8 +19,8 @@ public enum AirportPickerTarget: Equatable {
 /// High-contrast luxury black & white flight deck interface with dynamic inline accordion expansion:
 /// - Idle Height: 122px (Compact 16px equal margins on all sides)
 /// - Hover/Active Height: 156px (Reveals action controls)
-/// - Drawer Open Height: 348px (Inline airport and seat class drawers)
-/// - Pre-Flight Dispatch Height: 396px (Complete route clearance & destination time control)
+/// - Drawer Open Height: 368px (Inline airport and seat class drawers)
+/// - Pre-Flight Dispatch Height: 440px / 486px / 518px (Complete route clearance & destination time control)
 /// - Pure Jet Black base (#08080A), Obsidian containers (#151518), and Crisp White highlights (#FFFFFF)
 public struct FocusFlightCard: View {
     @Bindable public var engine: TransitEngine
@@ -58,7 +58,6 @@ public struct FocusFlightCard: View {
     // Inline Accordion Drawer (Replacing clipping popovers)
     @State private var activeDrawer: FlightCardDrawer? = nil
     @State private var dispatchAirportTarget: AirportPickerTarget? = nil
-    @State private var airportSearchQuery: String = ""
 
     // Standard Spring Animation Token
     private static let cardSpring = Animation.spring(response: 0.32, dampingFraction: 0.82)
@@ -85,6 +84,12 @@ public struct FocusFlightCard: View {
         self.onOpenWidgetSimulator = onOpenWidgetSimulator
         self.onClose = onClose
         self.onHeightChange = onHeightChange
+    }
+    
+    // MARK: - Persistence Helper
+    
+    private var persistenceStore: LocalStorageManager {
+        storage ?? LocalStorageManager()
     }
     
     // MARK: - Seat & Mission Helpers
@@ -147,15 +152,7 @@ public struct FocusFlightCard: View {
     }
     
     private var remainingTimeNegativeFormatted: String {
-        let remaining = remainingDurationSeconds
-        let hours = Int(remaining) / 3600
-        let mins = (Int(remaining) % 3600) / 60
-        let secs = Int(remaining) % 60
-        if hours > 0 {
-            return String(format: "-%dH %02dM", hours, mins)
-        } else {
-            return String(format: "-%02dM %02dS", mins, secs)
-        }
+        KaruFormatters.formatNegativeRemainingTime(remainingDurationSeconds)
     }
     
     private var departureTimeString: String {
@@ -211,18 +208,6 @@ public struct FocusFlightCard: View {
             return "TOUCHDOWN"
         }
     }
-    
-    private var filteredAirports: [DestinationAirport] {
-        let query = airportSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !query.isEmpty else {
-            return DestinationAirport.worldwideDestinations
-        }
-        return DestinationAirport.worldwideDestinations.filter {
-            $0.code.lowercased().contains(query) ||
-            $0.cityName.lowercased().contains(query) ||
-            $0.countryName.lowercased().contains(query)
-        }
-    }
 
     // MARK: - State Mutation & Preferences Helpers
 
@@ -231,8 +216,7 @@ public struct FocusFlightCard: View {
     }
 
     private func loadPreferences() {
-        let store = storage ?? LocalStorageManager()
-        let prefs = store.loadPreferences()
+        let prefs = persistenceStore.loadPreferences()
         self.destinationDurations = prefs.destinationDurations
         let target = prefs.targetDurationMinutes(for: destinationAirport.code)
         self.selectedDurationMinutes = target
@@ -245,10 +229,9 @@ public struct FocusFlightCard: View {
         self.destinationDurations[destinationAirport.code] = clean
         engine.setTargetDurationMinutes(clean)
 
-        let store = storage ?? LocalStorageManager()
-        var prefs = store.loadPreferences()
+        var prefs = persistenceStore.loadPreferences()
         prefs.setTargetDurationMinutes(clean, for: destinationAirport.code)
-        try? store.savePreferences(prefs)
+        try? persistenceStore.savePreferences(prefs)
     }
 
     private func loadDurationForDestination(_ code: String) {
@@ -329,18 +312,8 @@ public struct FocusFlightCard: View {
         .animation(Self.cardSpring, value: activeDrawer)
         .animation(Self.cardSpring, value: dispatchAirportTarget)
         .animation(Self.cardSpring, value: isCustomSeatSelected)
-        .onChange(of: activeDrawer) { _, _ in
-            onHeightChange?(currentCardHeight)
-        }
-        .onChange(of: dispatchAirportTarget) { _, _ in
-            if activeDrawer == .preFlightDispatch {
-                onHeightChange?(currentCardHeight)
-            }
-        }
-        .onChange(of: isCustomSeatSelected) { _, _ in
-            if activeDrawer == .preFlightDispatch {
-                onHeightChange?(currentCardHeight)
-            }
+        .onChange(of: currentCardHeight) { _, newHeight in
+            onHeightChange?(newHeight)
         }
         .onHover { hovering in
             withCardAnimation {
@@ -367,11 +340,9 @@ public struct FocusFlightCard: View {
     @ViewBuilder
     private var topRouteRow: some View {
         HStack(alignment: .center, spacing: 8) {
-            // Symmetrical Aligned Monochrome Route Display with Dual Selectors
             HStack(alignment: .center, spacing: 7) {
                 airportColumn(isOrigin: true)
                 
-                // Route Arrow centered in Crisp White
                 DotMatrixArrowView(
                     color: .white,
                     dotSize: 2.1,
@@ -384,7 +355,6 @@ public struct FocusFlightCard: View {
             
             Spacer(minLength: 8)
             
-            // Compact Inset ETA Pod
             AvionicsInsetPodView(
                 etaText: etaDisplayString,
                 timezoneText: timezoneDisplayString,
@@ -407,7 +377,6 @@ public struct FocusFlightCard: View {
 
         Button {
             withCardAnimation {
-                airportSearchQuery = ""
                 if engine.state == .idle {
                     dispatchAirportTarget = target
                     activeDrawer = .preFlightDispatch
@@ -510,7 +479,6 @@ public struct FocusFlightCard: View {
                 Button {
                     withCardAnimation {
                         dispatchAirportTarget = nil
-                        airportSearchQuery = ""
                         activeDrawer = (activeDrawer == .preFlightDispatch ? nil : .preFlightDispatch)
                     }
                 } label: {
@@ -618,7 +586,6 @@ public struct FocusFlightCard: View {
     @ViewBuilder
     private func inlineDrawerContent(_ drawer: FlightCardDrawer) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Drawer Header
             HStack {
                 Text(drawerHeaderTitle(for: drawer))
                     .font(.system(size: 9.5, weight: .bold, design: .monospaced))
@@ -630,7 +597,6 @@ public struct FocusFlightCard: View {
                     withCardAnimation {
                         activeDrawer = nil
                         dispatchAirportTarget = nil
-                        airportSearchQuery = ""
                     }
                 } label: {
                     Image(systemName: "xmark.circle.fill")
@@ -642,13 +608,114 @@ public struct FocusFlightCard: View {
             
             switch drawer {
             case .preFlightDispatch:
-                preFlightDispatchView
+                PreFlightDispatchDeckView(
+                    engine: engine,
+                    audioEngine: audioEngine,
+                    originAirport: originAirport,
+                    destinationAirport: destinationAirport,
+                    departureTimeString: departureTimeString,
+                    arrivalTimeString: arrivalTimeString,
+                    destinationAirportLocalTimeString: destinationAirportLocalTimeString,
+                    routeDistanceNM: routeDistanceNM,
+                    timezoneDeltaString: timezoneDeltaString,
+                    currentSeatCode: currentSeatCode,
+                    currentTaskTitle: currentTaskTitle,
+                    currentSeatIcon: currentSeatIcon,
+                    isCustomSeatSelected: $isCustomSeatSelected,
+                    customSeatCode: $customSeatCode,
+                    customTaskName: $customTaskName,
+                    customSeatIcon: $customSeatIcon,
+                    selectedDurationMinutes: $selectedDurationMinutes,
+                    dispatchAirportTarget: $dispatchAirportTarget,
+                    onSelectStandardSeat: { seat in
+                        withCardAnimation {
+                            selectStandardSeat(seat)
+                        }
+                    },
+                    onSyncCustomSeat: {
+                        withCardAnimation {
+                            syncCustomSeat()
+                        }
+                    },
+                    onSaveDuration: { mins in
+                        saveDurationForCurrentDestination(mins)
+                    },
+                    onClearForTakeoff: {
+                        engine.startTrip(
+                            preset: .sprint25,
+                            customDuration: TimeInterval(selectedDurationMinutes * 60),
+                            origin: originAirport.code,
+                            destination: destinationAirport.code,
+                            seatCode: currentSeatCode,
+                            taskTitle: currentTaskTitle,
+                            seatIcon: currentSeatIcon
+                        )
+                        audioEngine?.start()
+                        withCardAnimation {
+                            activeDrawer = nil
+                            dispatchAirportTarget = nil
+                        }
+                    },
+                    onAirportSelected: { airport, isOrigin in
+                        if isOrigin {
+                            engine.updateRoute(origin: airport.code, destination: destinationAirport.code)
+                        } else {
+                            engine.updateRoute(origin: originAirport.code, destination: airport.code)
+                            loadDurationForDestination(airport.code)
+                        }
+                        withCardAnimation {
+                            dispatchAirportTarget = nil
+                        }
+                    }
+                )
+
             case .originPicker:
-                airportListView(isOrigin: true)
+                FlightCardAirportPickerDrawer(
+                    isOrigin: true,
+                    selectedAirportCode: originAirport.code,
+                    maxHeight: 120
+                ) { airport in
+                    engine.updateRoute(origin: airport.code, destination: destinationAirport.code)
+                    withCardAnimation {
+                        activeDrawer = nil
+                    }
+                }
+
             case .destinationPicker:
-                airportListView(isOrigin: false)
+                FlightCardAirportPickerDrawer(
+                    isOrigin: false,
+                    selectedAirportCode: destinationAirport.code,
+                    maxHeight: 120
+                ) { airport in
+                    engine.updateRoute(origin: originAirport.code, destination: airport.code)
+                    loadDurationForDestination(airport.code)
+                    withCardAnimation {
+                        activeDrawer = nil
+                    }
+                }
+
             case .seatPicker:
-                seatClassListView
+                FlightCardSeatPickerDrawer(
+                    currentSeatCode: currentSeatCode,
+                    isCustomSeatSelected: isCustomSeatSelected,
+                    customSeatCode: $customSeatCode,
+                    customTaskName: $customTaskName,
+                    customSeatIcon: customSeatIcon,
+                    onSelectStandardSeat: { seat in
+                        selectStandardSeat(seat)
+                        withCardAnimation {
+                            activeDrawer = nil
+                        }
+                    },
+                    onSyncCustomSeat: {
+                        syncCustomSeat()
+                    },
+                    onDismiss: {
+                        withCardAnimation {
+                            activeDrawer = nil
+                        }
+                    }
+                )
             }
         }
         .padding(10)
@@ -663,596 +730,5 @@ public struct FocusFlightCard: View {
         case .destinationPicker: return "SELECT ARRIVAL AIRPORT (DESTINATION)"
         case .seatPicker: return "SELECT CABIN CLASS & TASK MODE"
         }
-    }
-
-    // MARK: - Pre-Flight Dispatch & Route Clearance View
-
-    @ViewBuilder
-    private var preFlightDispatchView: some View {
-        if let target = dispatchAirportTarget {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Button {
-                        withCardAnimation {
-                            dispatchAirportTarget = nil
-                            airportSearchQuery = ""
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 8, weight: .bold))
-                            Text("BACK TO CLEARANCE")
-                                .font(.system(size: 8.5, weight: .black, design: .monospaced))
-                        }
-                        .foregroundStyle(Color(hex: 0xFF5C00))
-                    }
-                    .buttonStyle(.plain)
-
-                    Spacer()
-
-                    Text(target == .origin ? "DEPARTURE (ORIGIN)" : "ARRIVAL (DESTINATION)")
-                        .font(.system(size: 8.5, weight: .bold, design: .monospaced))
-                        .foregroundStyle(Color.white.opacity(0.8))
-                }
-                .padding(.bottom, 2)
-
-                airportListView(isOrigin: target == .origin)
-            }
-        } else {
-            VStack(alignment: .leading, spacing: 8) {
-                // 1. Dual Route Corridor Card (Departure & Destination with Swap)
-                HStack(spacing: 6) {
-                    corridorAirportBox(isOrigin: true)
-
-                    // Corridor Swap Button
-                    Button {
-                        withCardAnimation {
-                            let oldOrigin = originAirport.code
-                            let oldDest = destinationAirport.code
-                            engine.updateRoute(origin: oldDest, destination: oldOrigin)
-                            loadDurationForDestination(oldOrigin)
-                        }
-                    } label: {
-                        ZStack {
-                            Circle()
-                                .fill(KaruTheme.surfaceElevated)
-                                .frame(width: 24, height: 24)
-                                .overlay(Circle().strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5))
-                            Image(systemName: "arrow.left.arrow.right")
-                                .font(.system(size: 8.5, weight: .bold))
-                                .foregroundStyle(Color.white.opacity(0.7))
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .help("Swap Departure and Destination")
-
-                    corridorAirportBox(isOrigin: false)
-                }
-
-                // 2. Seat & Cabin Class Selection Strip
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack {
-                        Text("03 / SEAT & CABIN CLASS")
-                            .font(.system(size: 7.5, weight: .black, design: .monospaced))
-                            .foregroundStyle(Color.white.opacity(0.9))
-
-                        Spacer()
-
-                        Text("SEAT \(currentSeatCode) · \(currentTaskTitle)")
-                            .font(.system(size: 7.5, weight: .bold, design: .monospaced))
-                            .foregroundStyle(Color(hex: 0xFF5C00))
-                            .lineLimit(1)
-                    }
-
-                    // Horizontal Seat Selector Strip
-                    HStack(spacing: 3) {
-                        ForEach(FocusSeatClass.allCases) { seat in
-                            let isSelected = !isCustomSeatSelected && (currentSeatCode == seat.rawValue || selectedSeat == seat)
-                            seatPill(
-                                title: seat.rawValue,
-                                icon: seat.iconSymbol,
-                                isSelected: isSelected,
-                                help: "\(seat.title) (\(seat.seatCode)) — \(seat.cabinClass)"
-                            ) {
-                                withCardAnimation {
-                                    selectStandardSeat(seat)
-                                }
-                            }
-                        }
-
-                        // Custom Seat Pill
-                        let isSelectedCustom = isCustomSeatSelected || (FocusSeatClass.find(code: currentSeatCode) == nil)
-                        seatPill(
-                            title: customSeatCode.isEmpty ? "7X" : customSeatCode.uppercased(),
-                            icon: customSeatIcon,
-                            isSelected: isSelectedCustom,
-                            help: "Custom Seat & Mission Objective"
-                        ) {
-                            withCardAnimation {
-                                syncCustomSeat()
-                            }
-                        }
-                    }
-
-                    // Expandable Custom Mission Deck
-                    if isCustomSeatSelected {
-                        HStack(spacing: 6) {
-                            HStack(spacing: 3) {
-                                Text("SEAT")
-                                    .font(.system(size: 7, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(KaruTheme.textMuted)
-                                TextField("7X", text: $customSeatCode)
-                                    .textFieldStyle(.plain)
-                                    .font(.system(size: 8.5, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(Color.white)
-                                    .frame(width: 28)
-                                    .onChange(of: customSeatCode) { _, newCode in
-                                        syncCustomSeat(code: newCode)
-                                    }
-                            }
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(Color.white.opacity(0.06))
-                            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-
-                            HStack(spacing: 3) {
-                                Text("MISSION")
-                                    .font(.system(size: 7, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(KaruTheme.textMuted)
-                                TextField("Task title / objective...", text: $customTaskName)
-                                    .textFieldStyle(.plain)
-                                    .font(.system(size: 8.5, weight: .medium))
-                                    .foregroundStyle(Color.white)
-                                    .onChange(of: customTaskName) { _, newTitle in
-                                        syncCustomSeat(title: newTitle)
-                                    }
-                            }
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(Color.white.opacity(0.06))
-                            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-                        }
-                        .padding(.top, 1)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                    }
-                }
-                .modifier(DispatchCardModifier())
-
-                // 3. Dedicated Destination Time Control Box
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack {
-                        Text("04 / TIME CONTROL (\(destinationAirport.code) · \(destinationAirport.cityName.uppercased()))")
-                            .font(.system(size: 7.5, weight: .black, design: .monospaced))
-                            .foregroundStyle(Color.white.opacity(0.9))
-
-                        Spacer()
-
-                        Text("ETA \(arrivalTimeString)")
-                            .font(.system(size: 8, weight: .bold, design: .monospaced))
-                            .foregroundStyle(Color(hex: 0xFF5C00))
-                    }
-
-                    // Duration Preset Pills
-                    HStack(spacing: 4) {
-                        ForEach([15, 25, 45, 60, 90], id: \.self) { mins in
-                            let isSelected = (selectedDurationMinutes == mins)
-                            Button {
-                                saveDurationForCurrentDestination(mins)
-                            } label: {
-                                Text("\(mins)M")
-                                    .font(.system(size: 8.5, weight: isSelected ? .black : .bold, design: .monospaced))
-                                    .foregroundStyle(isSelected ? Color.black : Color.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 3.5)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                            .fill(isSelected ? Color.white : Color.white.opacity(0.08))
-                                    )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-
-                    // Precision Stepper & Slider
-                    HStack(spacing: 6) {
-                        stepperButton(systemName: "minus", delta: -5)
-
-                        Slider(
-                            value: Binding(
-                                get: { Double(selectedDurationMinutes) },
-                                set: { saveDurationForCurrentDestination(Int($0)) }
-                            ),
-                            in: 5...120,
-                            step: 5
-                        )
-                        .tint(Color.white)
-
-                        stepperButton(systemName: "plus", delta: 5)
-
-                        Text("\(selectedDurationMinutes)M")
-                            .font(.system(size: 9.5, weight: .heavy, design: .monospaced))
-                            .foregroundStyle(Color.white)
-                            .frame(width: 32, alignment: .trailing)
-                    }
-
-                    // Telemetry Status Strip
-                    HStack {
-                        Text("\(routeDistanceNM) NM CORRIDOR")
-                            .font(.system(size: 7, weight: .bold, design: .monospaced))
-                            .foregroundStyle(KaruTheme.textMuted)
-
-                        Spacer()
-
-                        Text("\(timezoneDeltaString) · \(destinationAirport.timeZoneCode)")
-                            .font(.system(size: 7, weight: .bold, design: .monospaced))
-                            .foregroundStyle(KaruTheme.textSecondary)
-                    }
-                }
-                .modifier(DispatchCardModifier())
-
-                // 4. Clear For Takeoff Action
-                Button {
-                    engine.startTrip(
-                        preset: .sprint25,
-                        customDuration: TimeInterval(selectedDurationMinutes * 60),
-                        origin: originAirport.code,
-                        destination: destinationAirport.code,
-                        seatCode: currentSeatCode,
-                        taskTitle: currentTaskTitle,
-                        seatIcon: currentSeatIcon
-                    )
-                    audioEngine?.start()
-                    withCardAnimation {
-                        activeDrawer = nil
-                        dispatchAirportTarget = nil
-                    }
-                } label: {
-                    HStack(spacing: 5.5) {
-                        Image(systemName: "airplane.departure")
-                            .font(.system(size: 9.5, weight: .heavy))
-                        Text("CLEAR FOR TAKEOFF")
-                            .font(.system(size: 9.5, weight: .black, design: .monospaced))
-                    }
-                    .foregroundStyle(Color.black)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 7.5)
-                    .background(Capsule().fill(Color.white))
-                    .shadow(color: Color.white.opacity(0.3), radius: 3)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func corridorAirportBox(isOrigin: Bool) -> some View {
-        let airport = isOrigin ? originAirport : destinationAirport
-        let timeStr = isOrigin ? departureTimeString : destinationAirportLocalTimeString
-        let header = isOrigin ? "01 / DEPARTURE" : "02 / DESTINATION"
-        let accentColor = isOrigin ? Color.white : Color(hex: 0xFF5C00)
-        let borderColor = isOrigin ? Color.white.opacity(0.06) : Color(hex: 0xFF5C00).opacity(0.2)
-        let headerColor = isOrigin ? KaruTheme.textMuted : Color(hex: 0xFF5C00).opacity(0.85)
-
-        Button {
-            withCardAnimation {
-                airportSearchQuery = ""
-                dispatchAirportTarget = isOrigin ? .origin : .destination
-            }
-        } label: {
-            VStack(alignment: .leading, spacing: 1.5) {
-                Text(header)
-                    .font(.system(size: 7, weight: .bold, design: .monospaced))
-                    .foregroundStyle(headerColor)
-
-                HStack(spacing: 4) {
-                    Text(airport.countryFlag)
-                        .font(.system(size: 11))
-                    Text(airport.code)
-                        .font(.system(size: 12, weight: .heavy, design: .monospaced))
-                        .foregroundStyle(accentColor)
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 7, weight: .bold))
-                        .foregroundStyle(isOrigin ? KaruTheme.textMuted : Color(hex: 0xFF5C00).opacity(0.6))
-                }
-
-                Text("\(airport.cityName) · \(timeStr)")
-                    .font(.system(size: 8, weight: .medium))
-                    .foregroundStyle(KaruTheme.textSecondary)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(KaruTheme.surfaceElevated)
-            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .strokeBorder(borderColor, lineWidth: 0.5)
-            )
-        }
-        .buttonStyle(.plain)
-        .help(isOrigin ? "Change Departure Airport" : "Change Arrival Destination")
-    }
-
-    @ViewBuilder
-    private func seatPill(
-        title: String,
-        icon: String,
-        isSelected: Bool,
-        help: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 3) {
-                Image(systemName: icon)
-                    .font(.system(size: 7.5, weight: .bold))
-                Text(title)
-                    .font(.system(size: 8, weight: isSelected ? .black : .bold, design: .monospaced))
-            }
-            .padding(.horizontal, 4)
-            .padding(.vertical, 4)
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(isSelected ? Color.white : Color.white.opacity(0.08))
-            )
-            .foregroundStyle(isSelected ? Color.black : Color.white)
-        }
-        .buttonStyle(.plain)
-        .help(help)
-    }
-
-    @ViewBuilder
-    private func stepperButton(systemName: String, delta: Int) -> some View {
-        Button {
-            let target = min(180, max(5, selectedDurationMinutes + delta))
-            saveDurationForCurrentDestination(target)
-        } label: {
-            Image(systemName: systemName)
-                .font(.system(size: 8, weight: .black))
-                .foregroundStyle(Color.white)
-                .frame(width: 20, height: 20)
-                .background(Color.white.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-        }
-        .buttonStyle(.plain)
-    }
-    
-    // MARK: - Airport List Drawer
-    
-    @ViewBuilder
-    private func airportListView(isOrigin: Bool) -> some View {
-        VStack(spacing: 6) {
-            // Search field
-            HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 9))
-                    .foregroundStyle(KaruTheme.textMuted)
-                
-                TextField("Search airport code or city...", text: $airportSearchQuery)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 10))
-                    .foregroundStyle(Color.white)
-            }
-            .padding(6)
-            .background(Color.white.opacity(0.06))
-            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-            
-            ScrollView {
-                VStack(spacing: 4) {
-                    ForEach(filteredAirports) { airport in
-                        let isSelected = isOrigin ? (originAirport.code == airport.code) : (destinationAirport.code == airport.code)
-                        
-                        Button {
-                            if isOrigin {
-                                engine.updateRoute(origin: airport.code, destination: destinationAirport.code)
-                            } else {
-                                engine.updateRoute(origin: originAirport.code, destination: airport.code)
-                                loadDurationForDestination(airport.code)
-                            }
-                            withCardAnimation {
-                                if activeDrawer == .preFlightDispatch {
-                                    dispatchAirportTarget = nil
-                                    airportSearchQuery = ""
-                                } else {
-                                    activeDrawer = nil
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 8) {
-                                Text(airport.countryFlag)
-                                    .font(.system(size: 14))
-                                
-                                VStack(alignment: .leading, spacing: 1) {
-                                    HStack(spacing: 4) {
-                                        Text(airport.cityName)
-                                            .font(.system(size: 10.5, weight: .bold))
-                                            .foregroundStyle(Color.white)
-                                        Text("(\(airport.code))")
-                                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                            .foregroundStyle(Color.white.opacity(0.7))
-                                    }
-                                    Text("\(airport.countryName) · \(airport.timeZoneCode)")
-                                        .font(.system(size: 8))
-                                        .foregroundStyle(KaruTheme.textSecondary)
-                                }
-                                
-                                Spacer()
-                                
-                                if isSelected {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.system(size: 11))
-                                        .foregroundStyle(Color(hex: 0xFF5C00))
-                                }
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                            .background(isSelected ? KaruTheme.surfaceElevated : Color.white.opacity(0.03))
-                            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-            .frame(maxHeight: (activeDrawer == .preFlightDispatch) ? 175 : 120)
-        }
-    }
-    
-    // MARK: - Seat Class Drawer
-    
-    @ViewBuilder
-    private var seatClassListView: some View {
-        ScrollView {
-            VStack(spacing: 4) {
-                ForEach(FocusSeatClass.allCases) { seat in
-                    let isSelected = !isCustomSeatSelected && (currentSeatCode == seat.rawValue || selectedSeat == seat)
-                    seatClassRow(
-                        icon: seat.iconSymbol,
-                        title: seat.title,
-                        badge: "[\(seat.seatCode)]",
-                        subtitle: seat.subtitle,
-                        isSelected: isSelected
-                    ) {
-                        selectStandardSeat(seat)
-                        withCardAnimation {
-                            activeDrawer = nil
-                        }
-                    }
-                }
-
-                // Custom Mission & Seat Option
-                VStack(spacing: 5) {
-                    let isSelectedCustom = isCustomSeatSelected || (FocusSeatClass.find(code: currentSeatCode) == nil)
-                    
-                    seatClassRow(
-                        icon: customSeatIcon,
-                        title: customTaskName.isEmpty ? "CUSTOM MISSION" : customTaskName.uppercased(),
-                        badge: "[Seat \(customSeatCode.isEmpty ? "7X" : customSeatCode.uppercased())]",
-                        subtitle: "Custom Objective · User-Defined Seat Code",
-                        isSelected: isSelectedCustom
-                    ) {
-                        syncCustomSeat()
-                        withCardAnimation {
-                            activeDrawer = nil
-                        }
-                    }
-
-                    // Inline Custom Task & Seat Text Fields
-                    HStack(spacing: 6) {
-                        HStack(spacing: 3) {
-                            Text("SEAT:")
-                                .font(.system(size: 8, weight: .bold, design: .monospaced))
-                                .foregroundStyle(KaruTheme.textMuted)
-                            TextField("7X", text: $customSeatCode)
-                                .textFieldStyle(.plain)
-                                .font(.system(size: 8.5, weight: .bold, design: .monospaced))
-                                .foregroundStyle(Color.white)
-                                .frame(width: 28)
-                        }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(KaruTheme.recessedTray)
-                        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-
-                        HStack(spacing: 3) {
-                            Text("TASK:")
-                                .font(.system(size: 8, weight: .bold, design: .monospaced))
-                                .foregroundStyle(KaruTheme.textMuted)
-                            TextField("e.g. AUTH API", text: $customTaskName)
-                                .textFieldStyle(.plain)
-                                .font(.system(size: 8.5, weight: .bold, design: .monospaced))
-                                .foregroundStyle(Color.white)
-                        }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(KaruTheme.recessedTray)
-                        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-
-                        Button {
-                            syncCustomSeat()
-                            withCardAnimation {
-                                activeDrawer = nil
-                            }
-                        } label: {
-                            Text("SET")
-                                .font(.system(size: 8, weight: .heavy, design: .monospaced))
-                                .foregroundStyle(Color.black)
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 3.5)
-                                .background(Color.white)
-                                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(.horizontal, 4)
-                }
-            }
-        }
-        .frame(maxHeight: 145)
-    }
-
-    @ViewBuilder
-    private func seatClassRow(
-        icon: String,
-        title: String,
-        badge: String,
-        subtitle: String,
-        isSelected: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                ZStack {
-                    Circle()
-                        .fill(Color.white.opacity(0.12))
-                        .frame(width: 22, height: 22)
-                    Image(systemName: icon)
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(Color.white)
-                }
-                
-                VStack(alignment: .leading, spacing: 1) {
-                    HStack(spacing: 4) {
-                        Text(title)
-                            .font(.system(size: 10.5, weight: .bold))
-                            .foregroundStyle(Color.white)
-                        Text(badge)
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundStyle(Color.white.opacity(0.7))
-                    }
-                    Text(subtitle)
-                        .font(.system(size: 8))
-                        .foregroundStyle(KaruTheme.textSecondary)
-                }
-                
-                Spacer()
-                
-                if isSelected {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color(hex: 0xFF5C00))
-                }
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(isSelected ? KaruTheme.surfaceElevated : Color.white.opacity(0.03))
-            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-// MARK: - Reusable Pre-Flight Dispatch Card Modifier
-
-private struct DispatchCardModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .padding(8)
-            .background(KaruTheme.surfaceElevated)
-            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.06), lineWidth: 0.5)
-            )
     }
 }
