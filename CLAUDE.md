@@ -14,7 +14,8 @@
 - **Build with Warnings as Errors:** `swift build -Xswiftc -warnings-as-errors`
 - **Run Unit Tests:** `swift test`
 - **Filter Tests:** `swift test --filter TransitEngineTests`
-- **Format / Lint:** `swift format lint --strict`
+- **Format:** `swift format format --in-place --recursive Sources/ Tests/`
+- **Lint:** `swift format lint --strict --recursive Sources/ Tests/`
 - **Clean Build Artifacts:** `swift package clean`
 
 ## Code Conventions & Architecture
@@ -33,8 +34,10 @@
 
 ## Project Structure
 - `Sources/KaruCore/Core/`: `TransitEngine.swift`, `DistractionMonitor.swift`, `AppClassifier.swift`, `AudioEngine.swift`
-- `Sources/KaruCore/Models/`: `TransitState.swift`, `TripSession.swift`, `Habit.swift`, `VehicleProfile.swift`, `AppFilterRule.swift`, `WidgetTelemetrySnapshot.swift`
+- `Sources/KaruCore/Models/`: `TransitState.swift`, `TripSession.swift`, `Habit.swift`, `VehicleProfile.swift`, `AppFilterRule.swift`, `WidgetTelemetrySnapshot.swift`, `KaruPreferences.swift`
 - `Sources/KaruCore/Storage/`: `LocalStorageManager.swift`
 - `Sources/Karu/`: `KaruApp.swift`, `AppDelegate.swift`
-- `Sources/Karu/UI/`: `MenuBar/`, `Notch/`, `FloatingHUD/`, `Aviation/`, `Widgets/`, `Logbook/`, `Garage/`, `Settings/`, `Theme/`
+- `Sources/Karu/UI/`: `MenuBar/`, `Notch/`, `FloatingHUD/`, `Aviation/`, `Widgets/`, `Dock/`, `Onboarding/`, `Logbook/`, `Garage/`, `Settings/`, `Theme/`
+- `Packaging/`: `Info.plist`, `WidgetInfo.plist`, `generate_app_icon.swift`, `build_app.sh`, `install_app.sh`
 - `Tests/KaruCoreTests/`: `TransitEngineTests.swift`, `AppClassifierTests.swift`, `LocalStorageTests.swift`, `AudioEngineTests.swift`, `ModelTests.swift`, `WidgetTelemetryTests.swift`
+- `docs/`: `PRD.md`, `SPEC.md`, `PROJECT_MAP.md`, `CAPABILITY_MAP.md`, `decisions/` (ADR-001 - ADR-015)
