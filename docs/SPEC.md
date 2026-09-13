@@ -71,18 +71,22 @@ Karu/
 │           ├── MenuBar/                      # MenuBarController & DiagnosticPopoverView
 │           ├── Notch/                        # NotchWindowController & NotchWingsView
 │           ├── FloatingHUD/                  # FloatingHUDPanel & FloatingHUDView
-│           ├── Aviation/                     # FocusFlightCard (Boarding Pass & Inline Accordion Drawers)
+│           ├── Aviation/                     # FocusFlightCard, PreFlightDispatchDeckView, FlightCardDrawers, OrbitingTicketPopoutView
+│           ├── Widgets/                      # SmallAirspeedGauge, MediumFlightDispatch, TimelineProvider, Simulator
+│           ├── Dock/                         # DynamicDockTileView, DockTelemetryManager
+│           ├── Onboarding/                   # OnboardingView, OnboardingWindowController
 │           ├── Logbook/                      # LogbookView (Pilot's Flight Hours & Telemetry Logbook)
 │           ├── Garage/                       # GarageHangarView (Aircraft Fleet & Audio Picker)
 │           ├── Settings/                     # AppFilterSettingsView (1-Click Running App Radar & Rules)
-│           └── Theme/                        # KaruTheme, DotMatrixLEDView, AviationGraphicComponents
+│           └── Theme/                        # KaruTheme, KaruFormatters, DotMatrixLEDView, AviationGraphicComponents
 ├── Tests/
 │   └── KaruCoreTests/                        # Comprehensive Unit & Integration Tests
 │       ├── TransitEngineTests.swift          # Velocity (540 kts), efficiency, turbulence logs
 │       ├── AppClassifierTests.swift          # Bundle ID matching, overrides & preset tests
 │       ├── LocalStorageTests.swift           # Atomic persistence & crash-resilience tests
 │       ├── AudioEngineTests.swift            # Soundscape lifecycle & crossfade tests
-│       └── ModelTests.swift                  # Serialization & domain model logic tests
+│       ├── ModelTests.swift                  # Serialization & domain model logic tests
+│       └── WidgetTelemetryTests.swift        # Snapshot persistence & math tests
 ├── tasks/
 │   ├── plan.md                               # Implementation roadmap & completed phases
 │   └── todo.md                               # Actionable task checklist
@@ -90,7 +94,7 @@ Karu/
     ├── CAPABILITY_MAP.md                     # Module boundaries & build order
     ├── PRD.md                                # Product Requirements Document
     ├── PROJECT_MAP.md                        # Hierarchical context map
-    └── decisions/                            # Architecture Decision Records (ADR-001 - ADR-012)
+    └── decisions/                            # Architecture Decision Records (ADR-001 - ADR-015)
 ```
 
 ---
