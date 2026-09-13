@@ -39,7 +39,9 @@ Use this map to selectively load context when working on specific features.
   - `FloatingHUDPanel.swift`: Non-activating, always-on-top translucent floating overlay window.
   - `FloatingHUDView.swift`: Floating HUD container with hover actions.
 - **`Aviation/`**:
-  - `FocusFlightCard.swift`: Direction A luxury monochrome carbon matte boarding pass card with dual airport selection, ETA pod, luminous progress track, quick mute, and inline accordion slide drawers for airport and seat class selection.
+  - `FocusFlightCard.swift`: Direction A luxury monochrome carbon matte boarding pass card with active telemetry, negative countdown indicator, ETA pod, luminous progress track, and accordion drawer coordinator.
+  - `PreFlightDispatchDeckView.swift`: Pre-flight mission dispatch deck with dual corridor selector, 1-tap seat selector strip, destination time control, and takeoff clearance.
+  - `FlightCardDrawers.swift`: Modular inline accordion slide drawers (Route, Seat, Audio, Logbook, App Radar) and custom mission input rows.
   - `OrbitingTicketPopoutView.swift`: 3D cutout pop-out orbiting boarding pass ticket with interactive tear-off and seat picker.
   - `DotMatrixLEDView.swift`: Dot matrix typography and route arrow renderers.
   - `AviationGraphicComponents.swift`: Luminous slider track, avionics ETA pod, and telemetry gauges.
@@ -63,6 +65,7 @@ Use this map to selectively load context when working on specific features.
   - `AppFilterSettingsView.swift`: 1-Click Running App Radar (scans active apps with native icons), rule manager, and Display & Dock settings.
 - **`Theme/`**:
   - `KaruTheme.swift`: Dark carbon matte tokens (`#08080A`, `#151518`), typography, and corner radiuses.
+  - `KaruFormatters.swift`: Centralized high-performance cached formatters for timestamps, ETAs, logbook dates, ticket dates, distances, and negative countdowns.
 
 ---
 
@@ -88,4 +91,4 @@ Use this map to selectively load context when working on specific features.
 - [SPEC.md](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/SPEC.md): Technical specification and architectural guidelines.
 - [SPEC-widget.md](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/SPEC-widget.md): Desktop flight telemetry widget specification.
 - [CAPABILITY_MAP.md](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/CAPABILITY_MAP.md): Decoupled module boundaries and dependency graphs.
-- [ADRs](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/decisions/): Architecture Decision Records covering ADR-001 through ADR-014.
+- [ADRs](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/decisions/): Architecture Decision Records covering ADR-001 through ADR-015.
