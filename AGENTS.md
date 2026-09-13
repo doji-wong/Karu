@@ -34,6 +34,9 @@
 - **ADR-010 (Direction A Monochrome Avionics):** Pure carbon matte `#08080A`, Knots/NM velocity, dual airport selection, and inline accordion drawers.
 - **ADR-011 (1-Click Running App Radar):** Active app discovery via `NSWorkspace` with native icons and 1-click rules.
 - **ADR-012 (Pilot's Logbook):** Certified flight hours, distance flown, touchdowns, and on-time efficiency tracking (`Cmd + L`).
+- **ADR-013 (Desktop Telemetry Widgets):** Curated 12-field telemetry snapshot and interactive 1-click takeoff widget (`systemSmall` / `systemMedium`).
+- **ADR-014 (Packaging & Dock Telemetry):** Standalone `Karu.app` release packaging, dynamic `NSDockTile` avionics, and 4-stage pilot intake.
+- **ADR-015 (Pre-Flight Dispatch Deck & Modular Drawers):** 4-section clearance deck, modular drawer decomposition, dynamic destination durations, and cached formatters.
 
 ---
 
@@ -115,12 +118,21 @@ Karu/
 │           ├── MenuBar/                  # MenuBarController & DiagnosticPopoverView
 │           ├── Notch/                    # NotchWindowController & NotchWingsView
 │           ├── FloatingHUD/              # FloatingHUDPanel & FloatingHUDView
-│           ├── Aviation/                 # FocusFlightCard, OrbitingTicketPopoutView, DotMatrixLEDView, AviationGraphicComponents
+│           ├── Aviation/                 # FocusFlightCard, PreFlightDispatchDeckView, FlightCardDrawers, OrbitingTicketPopoutView
 │           ├── Widgets/                  # SmallAirspeedGauge, MediumFlightDispatch, TimelineProvider, Simulator
+│           ├── Dock/                     # DynamicDockTileView, DockTelemetryManager
+│           ├── Onboarding/               # OnboardingView, OnboardingWindowController
 │           ├── Logbook/                  # LogbookView (Pilot's Flight Logbook - Cmd + L)
 │           ├── Garage/                   # GarageHangarView (Aircraft fleet & audio picker)
 │           ├── Settings/                 # AppFilterSettingsView (1-Click App Radar & Rules)
-│           └── Theme/                    # KaruTheme (Design tokens, palette & typography)
+│           └── Theme/                    # KaruTheme, KaruFormatters (Design tokens, palette & typography)
+├── Packaging/                            # Standalone bundle packaging, icons & installer scripts
+│   ├── Info.plist                        # macOS application bundle property list
+│   ├── WidgetInfo.plist                  # WidgetKit extension bundle property list
+│   └── generate_app_icon.swift           # CoreGraphics Apple squircle icon generator
+├── scripts/                              # Standalone compilation and system deployment scripts
+│   ├── build_app.sh                      # Release compilation and standalone .app packager
+│   └── install_app.sh                    # System installer (/Applications/) and LaunchServices registrar
 ├── Tests/
 │   └── KaruCoreTests/                    # Comprehensive unit tests
 │       ├── TransitEngineTests.swift      # Velocity (540 kts), efficiency, turbulence logs
@@ -129,5 +141,5 @@ Karu/
 │       ├── AudioEngineTests.swift        # Soundscape lifecycle & crossfade tests
 │       ├── ModelTests.swift              # Serialization & domain model logic tests
 │       └── WidgetTelemetryTests.swift    # Snapshot persistence, serialization & math tests
-└── docs/                                 # PRD, Specifications, and Architecture Decision Records (ADR-001 - ADR-013)
+└── docs/                                 # PRD, Specifications, and Architecture Decision Records (ADR-001 - ADR-015)
 ```
