@@ -12,8 +12,10 @@ This document establishes the decoupled module boundaries, dependencies, and bui
 | `transit-engine` | `KaruCore` | Velocity calculation (540 kts cruise vs 0 kts turbulence), elapsed cruise/stalled time tracking, route progress, and gate holds. | `karu-models` | `macos-windowing-ui`, `audio-engine`, `local-storage` |
 | `app-classifier` | `KaruCore` | $O(1)$ bundle ID classification (Focus / Distraction / Neutral) and event-driven `NSWorkspace` app listener. | `karu-models`, `AppKit.NSWorkspace` | `transit-engine` |
 | `local-storage` | `KaruCore` | 100% local atomic JSON file persistence (`~/Library/Application Support/Karu/`) for habits, trip logs, rules, and fleet preferences. | `karu-models`, `Foundation.FileManager` | `transit-engine`, `macos-windowing-ui` |
-| `audio-engine` | `KaruCore` | `AVAudioEngine` low-latency ambient soundscapes with 400ms crossfade between cruise and turbulence states. | `karu-models`, `AVFoundation` | `transit-engine`, `macos-windowing-ui` |
-| `macos-windowing-ui` | `Karu` | Presentation layer: MenuBar Popover, Notch Wings, Floating HUD Card, FocusFlightCard (Boarding Pass & Inline Accordion), Garage Hangar, Settings (1-Click App Radar), and Pilot's Logbook. | `transit-engine`, `app-classifier`, `local-storage`, `audio-engine`, `AppKit`, `SwiftUI` | End User (macOS Desktop) |
+| `audio-engine` | `KaruCore` | `AVAudioEngine` low-latency ambient soundscapes with 400ms crossfade between cruise and turbulence states, plus cabin PA voice alerts. | `karu-models`, `AVFoundation` | `transit-engine`, `macos-windowing-ui` |
+| `preflight-dispatch` | `Karu` | Pre-flight mission dispatch deck, dual route corridor with swap, 1-tap seat selector strip, dynamic destination duration memory, and modular accordion drawers. | `transit-engine`, `audio-engine`, `karu-models`, `SwiftUI` | `macos-windowing-ui` |
+| `telemetry-widgets` | `KaruWidgets` & `Karu` | Desktop WidgetKit extensions (`systemSmall`, `systemMedium`) and interactive `NSDockTile` live cockpit telemetry. | `karu-models`, `local-storage`, `WidgetKit`, `AppIntents` | macOS Desktop, Dock |
+| `macos-windowing-ui` | `Karu` | Presentation layer: MenuBar Popover, Notch Wings, Floating HUD Card, FocusFlightCard, Garage Hangar, Settings (1-Click App Radar), Pilot Onboarding, and Pilot's Logbook. | `transit-engine`, `app-classifier`, `local-storage`, `audio-engine`, `preflight-dispatch`, `AppKit`, `SwiftUI` | End User (macOS Desktop) |
 
 ---
 
