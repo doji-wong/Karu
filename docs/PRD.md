@@ -1,8 +1,8 @@
 # Karu — Product Requirements Document (PRD)
 
 **Document Status:** Approved (Focus Flight Edition)  
-**Version:** 2.0.0  
-**Date:** 2026-08-30  
+**Version:** 2.1.0  
+**Date:** 2026-09-13  
 **Platform:** macOS 14.0+ (Apple Silicon & Intel)  
 **Tech Foundation:** Native Swift / SwiftUI / AppKit (100% Local-First)
 
@@ -59,21 +59,37 @@ With integrated **Pilot Flight Hours Logbook**, **1-Click Running App Radar**, a
 
 ## 4. Feature Specifications
 
-### 4.1 Focus Flight Card & Boarding Pass (`FocusFlightCard.swift`)
+### 4.1 Focus Flight Card & In-Flight Telemetry (`FocusFlightCard.swift`)
 * High-contrast luxury black & white flight deck interface:
-  * **Dual Airport Route Selection:** Both Departure (Origin) and Arrival (Destination) airports are independently selectable from global IATA airport nodes with live timezone calculations.
-  * **Smooth Inline Accordion Drawers:** Replaces detached system popovers with smooth inline drawers (`122px` idle ➔ `156px` hover ➔ `348px` drawer open) that completely eliminate window clipping bugs in borderless floating `NSPanel`s.
-  * **Luminous Slider Track:** Interactive scrubber showing progress and remaining flight time.
+  * **Dual Airport Route Corridor:** Departure and arrival airports with live timezone delta and great-circle nautical distance.
+  * **Negative Overtime Countdown:** High-contrast remaining and overdue timer displays (`-MM:SS` countdown and overtime indications via `KaruFormatters`).
+  * **Luminous Slider Track:** Interactive scrubber showing elapsed cruise distance, target arrival progress, and gate status.
   * **Avionics ETA Pod:** Compact inset pod with destination ETA, timezone, and telemetry status badges.
-  * **Quick Cabin Audio Toggle:** 1-click cabin acoustic mute/unmute control.
+  * **Smooth Inline Accordion Drawer Coordinator:** Dynamic expansion without window clipping bugs in borderless floating `NSPanel`s.
 
-### 4.2 1-Click Running App Radar (`AppFilterSettingsView.swift`)
+### 4.2 Pre-Flight Dispatch Deck (`PreFlightDispatchDeckView.swift`)
+* Structured 4-stage clearance sequence presented prior to flight takeoff:
+  1. **Dual Route Corridor:** Origin and Destination selector cards with 1-tap corridor swap (`⇄`) and inline search.
+  2. **Seat & Cabin Class Selector:** Horizontal strip with standard presets (`1A Deep Work`, `2B Study`, `3C Research`, `4D Read`, `5F Code`) and custom `7X` mission objective entry.
+  3. **Destination Time Control:** Per-airport duration memory (`destinationDurations`), preset duration pills (`15M`, `25M`, `45M`, `60M`, `90M`), precision stepper, slider, and live ETA in destination timezone.
+  4. **Clear for Takeoff:** High-contrast 1-tap clearance triggering departure soundscape and 540 kts cruising state.
+
+### 4.3 Modular Aviation Drawers (`FlightCardDrawers.swift`)
+* Decoupled inline accordion drawer components:
+  * `FlightCardAirportPickerDrawer`: Searchable global airport directory with IATA codes, cities, and timezones.
+  * `FlightCardSeatDrawer`: Standalone seat and custom mission objective configuration.
+  * `FlightCardAudioDrawer`: Vehicle soundscape selection and volume controls.
+  * `FlightCardLogbookDrawer`: In-flight quick access to session history and efficiency stats.
+  * `FlightCardAppRadarDrawer`: Live active application scanner and 1-click whitelist/blacklist rules.
+  * `CustomMissionInputRow`: Reusable uppercase custom task and seat code input row.
+
+### 4.4 1-Click Running App Radar (`AppFilterSettingsView.swift`)
 * Live scanning of active macOS user applications via `NSWorkspace.shared.runningApplications`.
 * Displays native application icons, names, and bundle IDs.
 * 1-Click classification buttons for `Focus Workspace`, `Distraction Hazard`, or `Neutral Utility`.
 * Instant persistence to local storage with manual rescan and search filtering.
 
-### 4.3 Pilot's Flight Logbook Window (`LogbookView.swift` / `Cmd + L`)
+### 4.5 Pilot's Flight Logbook Window (`LogbookView.swift` / `Cmd + L`)
 * Dedicated analytics and flight log utility window tracking:
   * Total Certified Flight Hours (`HRS`)
   * Total Distance Flown in Nautical Miles (`NM`)
@@ -81,13 +97,31 @@ With integrated **Pilot Flight Hours Logbook**, **1-Click Running App Radar**, a
   * Fleet On-Time Cruising Efficiency Percentage (`%`)
   * Detailed chronological session log table with turbulence incident counts.
 
-### 4.4 Dynamic Notch HUD / Side-Notch Wings (`NotchWingsView.swift`)
+### 4.6 Dynamic Notch HUD / Side-Notch Wings (`NotchWingsView.swift`)
 * Hardware camera notch attachment on modern MacBooks using `NSScreen.auxiliaryTopLeftArea` / `auxiliaryTopRightArea`.
 * **Left Wing:** Live Airspeed Telemetry (`⚡ 540 kts` cruise glow; shifts to `⚠️ 0 kts TURBULENCE` when distracted).
 * **Right Wing:** Route progress & habit tag (e.g. `HND ➔ 24m remaining`).
 * Automated fallback to Menu Bar HUD on external or non-notch displays.
 
-### 4.5 In-Flight Acoustic Engine (`AudioEngine.swift`)
+### 4.7 Desktop Flight Telemetry Widgets (`KaruWidgets`)
+* Native WidgetKit desktop extensions for macOS 14.0+ (Sonoma) and macOS 15.0+ (Sequoia):
+  * **Small Airspeed Gauge (`systemSmall`):** Circular daily flight quota ring, 540 kts digital speedometer, and habit streak counter.
+  * **Medium Flight Dispatch (`systemMedium`):** Split board with route telemetry corridor, flight progress bar, live ETA, and 1-click interactive takeoff intent (`TakeoffIntent`).
+* Local-first snapshots loaded atomically from `widget_snapshot.json` via `FlightTelemetryTimelineProvider`.
+
+### 4.8 Dynamic Dock Telemetry & Interactive Menu (`DockTelemetryManager.swift`)
+* Mini carbon-matte cockpit avionics rendered directly in `NSApp.dockTile.contentView` (`DynamicDockTileView`).
+* Live circular progress arc, digital airspeed readout (`540 KTS`), and destination badge with `< 0.5%` CPU throttling.
+* Interactive macOS Dock contextual menu (`NSApplicationDelegate.applicationDockMenu`) for quick takeoff, gate hold, and touchdown.
+
+### 4.9 First-Time Pilot Onboarding Briefing (`OnboardingView.swift`)
+* 4-stage interactive cockpit briefing on maiden launch:
+  1. Role & Daily Flight Quota selection.
+  2. 1-Click App Radar active application scanning.
+  3. Avionics velocity mental model introduction.
+  4. Maiden takeoff ignition with departure chime.
+
+### 4.10 In-Flight Acoustic Engine (`AudioEngine.swift`)
 * Low-latency spatialized ambient cabin soundscapes using `AVAudioEngine` for 5 distinct aircraft models:
   1. *Airbus A350F* (Rolls-Royce Trent XWB turbofan hum)
   2. *Boeing 787-9 Dreamliner* (Serene acoustic cabin dampening)
@@ -95,6 +129,7 @@ With integrated **Pilot Flight Hours Logbook**, **1-Click Running App Radar**, a
   4. *Gulfstream G650* (Whisper-quiet executive jet FL450 cruising air)
   5. *Cessna 172 Skyhawk* (Lycoming 4-cylinder rhythmic propeller drone)
 * 400ms smooth crossfading between cruising soundscapes and turbulence alert soundscapes.
+* Integrated cabin voice announcements and chime sequences for takeoff, turbulence, and touchdown.
 
 ---
 
