@@ -21,6 +21,8 @@ This directory documents all significant technical and architectural decisions f
 | [ADR-011](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/decisions/ADR-011-one-click-running-application-radar.md) | Live 1-Click Running Application Radar Architecture | **Accepted** | 2026-08-30 | `NSWorkspace` active application discovery with native icons & 1-click rules |
 | [ADR-012](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/decisions/ADR-012-pilot-logbook-and-flight-hours-telemetry.md) | Pilot Logbook & Flight Hours Telemetry Architecture | **Accepted** | 2026-08-30 | Dedicated Logbook window (`Cmd + L`) tracking hours, distance & efficiency |
 | [ADR-013](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/decisions/ADR-013-desktop-flight-telemetry-widgets.md) | Desktop Flight Telemetry Widgets & Curated Avionics Metrics | **Accepted** | 2026-09-01 | Option A Small/Medium Widgets with curated 12-field telemetry & 1-click takeoff |
+| [ADR-014](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/decisions/ADR-014-standalone-macos-packaging-and-dock-telemetry.md) | Standalone macOS Packaging, Dynamic Dock Telemetry & Pilot Onboarding | **Accepted** | 2026-09-02 | Standalone `.app` bundle, `AppIcon.icns`, dynamic dock tile telemetry, and 4-stage intake |
+| [ADR-015](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/decisions/ADR-015-preflight-dispatch-deck-and-modular-aviation-drawers.md) | Pre-Flight Dispatch Deck, Dynamic Route/Time Clearance & Modular Drawers | **Accepted** | 2026-09-08 | 4-section clearance deck, modular drawer decomposition, dynamic destination durations, and cached formatters |
 
 ---
 
