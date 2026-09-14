@@ -76,13 +76,20 @@ for W_DIR in "${WIDGET_EXT_BUNDLE}" "${WIDGET_PLUGIN_BUNDLE}"; do
         cp "${ROOT_DIR}/Packaging/AppIcon.icns" "${W_DIR}/Contents/Resources/AppIcon.icns"
     fi
 
-    # 4. Ad-Hoc Code Signing for extension
-    echo "🔏 Code-signing widget extension at ${W_DIR}..."
-    codesign --force --sign - --entitlements "${ROOT_DIR}/Packaging/KaruWidgets.entitlements" "${W_DIR}"
+    # 4. Code Signing for extension
+    CODESIGN_IDENTITY="${CODESIGN_IDENTITY:--}"
+    SIGN_FLAGS="--force --options runtime"
+    if [ "${CODESIGN_IDENTITY}" != "-" ]; then
+        SIGN_FLAGS="${SIGN_FLAGS} --timestamp"
+        echo "🔏 Signing widget extension with ${CODESIGN_IDENTITY} at ${W_DIR}..."
+    else
+        echo "🔏 Ad-hoc code-signing widget extension at ${W_DIR}..."
+    fi
+    codesign ${SIGN_FLAGS} --sign "${CODESIGN_IDENTITY}" --entitlements "${ROOT_DIR}/Packaging/KaruWidgets.entitlements" "${W_DIR}"
 done
 
-echo "🔏 Code-signing application bundle..."
-codesign --force --deep --sign - "${APP_BUNDLE}"
+echo "🔏 Code-signing main application bundle (Hardened Runtime)..."
+codesign ${SIGN_FLAGS} --deep --sign "${CODESIGN_IDENTITY}" --entitlements "${ROOT_DIR}/Packaging/Karu.entitlements" "${APP_BUNDLE}"
 
 # 5. Verify Code Signing
 echo "🔍 Verifying code signature..."
