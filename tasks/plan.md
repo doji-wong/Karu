@@ -76,7 +76,7 @@ This plan outlines the sequenced execution phases for Karu, establishing clear v
 
 ---
 
-### Phase 10: Performance, Battery & Memory Optimization (`perf-optimization`) — [PLANNED]
+### Phase 10: Performance, Battery & Memory Optimization (`perf-optimization`) — [COMPLETED]
 - **Deliverables:**
   - **AudioEngine CoreAudio Low-Power Lifecycle:** Automatic sleep/pause when idle/paused/completed/muted; on-demand activation; 2.0s optimized audio buffers.
   - **TransitEngine Kernel Timer Coalescing:** Timer tolerance (0.1s) and `.common` run loop mode for low-power operation.
@@ -88,7 +88,7 @@ This plan outlines the sequenced execution phases for Karu, establishing clear v
 
 ---
 
-### Phase 11: Native macOS Desktop Widget Extension Packaging (`widget-appex`) — [PLANNED]
+### Phase 11: Native macOS Desktop Widget Extension Packaging (`widget-appex`) — [COMPLETED]
 - **Deliverables:**
   - `KaruWidgets.swift`: `@main struct KaruWidgetBundle: WidgetBundle`, `SmallAirspeedGaugeWidget: Widget`, and `MediumFlightDispatchWidget: Widget`.
   - `Packaging/WidgetInfo.plist`: Extension point `com.apple.widgetkit-extension`.
@@ -96,3 +96,17 @@ This plan outlines the sequenced execution phases for Karu, establishing clear v
   - `scripts/build_app.sh`: Automated compilation and embedding of `Contents/PlugIns/KaruWidgets.appex` inside `Karu.app`.
   - `scripts/install_app.sh`: 1-click install to `/Applications/Karu.app` and system LaunchServices / WidgetKit registration so Karu widgets immediately appear in the macOS Desktop Widget Gallery ("Edit Widgets...").
 - **Verification Gate:** `build/Karu.app/Contents/PlugIns/KaruWidgets.appex` verified; code-signed; detected by macOS WidgetKit.
+
+---
+
+### Phase 12: Production Release Pipeline & Distribution Packaging (`release-dmg-pipeline`) — [COMPLETED]
+- **Deliverables:**
+  - `Packaging/Karu.entitlements`: Hardened Runtime configuration for the main application bundle.
+  - `scripts/build_app.sh`: Parameterized code signing with `CODESIGN_IDENTITY`, `--options runtime`, and entitlements.
+  - `scripts/create_dmg.sh`: Native zero-dependency DMG builder via `hdiutil` and AppleScript Finder styling.
+  - `scripts/notarize_app.sh`: Automated Apple Notary submission (`xcrun notarytool`) and stapler integration (`xcrun stapler`).
+  - `.github/workflows/build-and-test.yml`: Continuous integration workflow running tests on `macos-14`.
+  - `.github/workflows/release.yml`: Automated tag-triggered release workflow creating GitHub Releases with DMG, ZIP, and SHA256 checksums.
+  - `LICENSE`: MIT License.
+  - `README.md`: Quick start and installation documentation.
+- **Verification Gate:** Standalone DMG generated cleanly at `build/dist/Karu-v1.0.0.dmg`; SHA256 checksum verified.

@@ -271,3 +271,43 @@
 - [x] `./scripts/build_app.sh` packages `Karu.app` with embedded `KaruWidgets.appex` cleanly
 - [x] `swift test` passes 100% of unit tests
 - [x] Widgets are ready to appear on macOS desktop
+
+---
+
+## Phase 12: Production Release Pipeline & Distribution Packaging (`release-dmg-pipeline`)
+
+- [x] **Task 12.1: Hardened Runtime Entitlements (`Packaging/Karu.entitlements`)**
+  - **Acceptance:** Entitlements plist created for main executable under Hardened Runtime.
+  - **Verify:** `plutil -lint Packaging/Karu.entitlements`
+  - **Files:** `Packaging/Karu.entitlements`
+
+- [x] **Task 12.2: Parameterized Code Signing & Hardened Runtime in `build_app.sh`**
+  - **Acceptance:** Supports `CODESIGN_IDENTITY`, adds `--options runtime`, binds entitlements, and passes `codesign --verify --deep --strict`.
+  - **Verify:** `./scripts/build_app.sh`
+  - **Files:** `scripts/build_app.sh`
+
+- [x] **Task 12.3: Native Standalone DMG Packager (`scripts/create_dmg.sh`)**
+  - **Acceptance:** Generates `build/dist/Karu-v1.0.0.dmg` with styled 540x380 Finder layout, centered app icon, `/Applications` link, and UDZO compression with zero external tools.
+  - **Verify:** `./scripts/create_dmg.sh`
+  - **Files:** `scripts/create_dmg.sh`
+
+- [x] **Task 12.4: Apple Notarization & Stapling Utility (`scripts/notarize_app.sh`)**
+  - **Acceptance:** Wraps `xcrun notarytool` and `xcrun stapler` for DMG release images with Keychain or environment variable authentication.
+  - **Verify:** `test -x scripts/notarize_app.sh`
+  - **Files:** `scripts/notarize_app.sh`
+
+- [x] **Task 12.5: GitHub Actions CI/CD Workflows**
+  - **Acceptance:** Continuous build and test on PR/push (`build-and-test.yml`), automated release packaging and artifact attachment on `v*` tags (`release.yml`).
+  - **Verify:** `.github/workflows/build-and-test.yml`, `.github/workflows/release.yml`
+  - **Files:** `.github/workflows/build-and-test.yml`, `.github/workflows/release.yml`
+
+- [x] **Task 12.6: License & Release Documentation**
+  - **Acceptance:** `LICENSE` file created with MIT License; `README.md` updated with badges, installation methods, and build commands.
+  - **Verify:** `cat LICENSE`, `cat README.md`
+  - **Files:** `LICENSE`, `README.md`
+
+### Checkpoint: Production Release Pipeline Verification
+- [x] `scripts/create_dmg.sh` executes and generates clean `build/dist/Karu-v1.0.0.dmg`
+- [x] `swift test` passes 100% of unit tests
+- [x] Code signing passes deep verification with Hardened Runtime
+
