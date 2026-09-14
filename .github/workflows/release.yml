@@ -12,13 +12,13 @@ jobs:
     permissions:
       contents: write
     env:
-      BUILD_CERTIFICATE_BASE64: ${{ secrets['BUILD_CERTIFICATE_BASE64'] }}
-      P12_PASSWORD: ${{ secrets['P12_PASSWORD'] }}
-      KEYCHAIN_PASSWORD: ${{ secrets['KEYCHAIN_PASSWORD'] }}
-      CODESIGN_IDENTITY: ${{ secrets['CODESIGN_IDENTITY'] }}
-      APPLE_ID: ${{ secrets['APPLE_ID'] }}
-      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets['APPLE_APP_SPECIFIC_PASSWORD'] }}
-      APPLE_TEAM_ID: ${{ secrets['APPLE_TEAM_ID'] }}
+      BUILD_CERTIFICATE_BASE64: ${{ secrets[format('{0}', 'BUILD_CERTIFICATE_BASE64')] }}
+      P12_PASSWORD: ${{ secrets[format('{0}', 'P12_PASSWORD')] }}
+      KEYCHAIN_PASSWORD: ${{ secrets[format('{0}', 'KEYCHAIN_PASSWORD')] }}
+      CODESIGN_IDENTITY: ${{ secrets[format('{0}', 'CODESIGN_IDENTITY')] }}
+      APPLE_ID: ${{ secrets[format('{0}', 'APPLE_ID')] }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets[format('{0}', 'APPLE_APP_SPECIFIC_PASSWORD')] }}
+      APPLE_TEAM_ID: ${{ secrets[format('{0}', 'APPLE_TEAM_ID')] }}
 
     steps:
       - name: Check out repository
