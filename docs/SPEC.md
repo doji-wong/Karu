@@ -146,6 +146,13 @@ public final class TransitEngine {
 - **Window Management:** Floating HUDs use `NSPanel` with `.nonactivatingPanel`, `.floating`, and `.canJoinAllSpaces`.
 - **Inline Accordion Drawers:** Sub-pickers expand inline inside the card container to prevent borderless `NSPanel` popover clipping.
 
+### 5.3 Packaging, Hardened Runtime & CI/CD Architecture
+- **Hardened Runtime (`Packaging/Karu.entitlements`):** Enforces strict Gatekeeper compliance with zero JIT or unsigned memory exceptions.
+- **Parameterized Code Signing (`scripts/build_app.sh`):** Supports `CODESIGN_IDENTITY` with `--options runtime`, `--timestamp`, and recursive `.appex` plugin signing.
+- **Native DMG Generation (`scripts/create_dmg.sh`):** Builds compressed `UDZO` disk images with custom 540x380 AppleScript Finder positioning and `/Applications` drag-and-drop symlink using zero third-party dependencies.
+- **Apple Notarization (`scripts/notarize_app.sh`):** Automates `xcrun notarytool` submission and `xcrun stapler` ticket attachment for seamless Gatekeeper clearance.
+- **Continuous Integration & Delivery (`.github/workflows/`):** Strict PR quality gates (`build-and-test.yml` with `-warnings-as-errors`) and automated tag-triggered GitHub Releases (`release.yml`).
+
 ---
 
 ## 6. Testing Strategy
@@ -180,3 +187,7 @@ public final class TransitEngine {
 - [x] Inline accordion drawers expand smoothly without window border clipping in floating HUD panels.
 - [x] 1-Click Running App Radar lists running apps with native icons and 1-click classification.
 - [x] Pilot's Logbook (`Cmd + L`) accurately records focus flight hours, distance flown, and on-time efficiency.
+- [x] Standalone DMG packages cleanly via `scripts/create_dmg.sh` with styled Finder layout and zero external dependencies.
+- [x] Hardened Runtime entitlements pass deep verification with `codesign --verify --deep --strict`.
+- [x] GitHub Actions workflows automate PR verification and tag-driven GitHub Releases.
+
