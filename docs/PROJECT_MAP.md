@@ -69,10 +69,18 @@ Use this map to selectively load context when working on specific features.
 
 ---
 
-## 5. Application Lifecycle & Packaging (`Sources/Karu/` & `Packaging/`)
+## 5. Application Lifecycle, Packaging & CI/CD Pipelines
 - **`KaruApp.swift`**: SwiftUI app entry point, system menu commands (`Cmd + L`, `Cmd + Shift + F`, `Cmd + Shift + G`, `Cmd + Shift + W`, `Cmd + ,`).
 - **`AppDelegate.swift`**: `NSApplicationDelegate` coordinator wiring engines, window controllers, widget exporter, dock telemetry manager, onboarding controller, and `applicationDockMenu`.
-- **`Packaging/`**: `Info.plist`, `AppIcon.icns`, `generate_app_icon.swift`, and `build_app.sh` release packager.
+- **`Packaging/`**: `Info.plist`, `WidgetInfo.plist`, `Karu.entitlements` (Hardened Runtime), `AppIcon.icns`, `generate_app_icon.swift`.
+- **`scripts/`**:
+  - `build_app.sh`: Automated release compilation, `.app` bundle assembly, embedded `KaruWidgets.appex` packaging, and parameterized code signing.
+  - `create_dmg.sh`: Native zero-dependency Finder-styled drag-and-drop DMG builder using `hdiutil` and AppleScript layout automation.
+  - `notarize_app.sh`: Apple Notary service submission (`xcrun notarytool`) and ticket stapling (`xcrun stapler`) helper.
+  - `install_app.sh`: 1-command installer copying to `/Applications/` and registering with macOS LaunchServices / WidgetKit.
+- **`.github/workflows/`**:
+  - `build-and-test.yml`: Continuous integration workflow testing on `macos-14` with zero compiler warnings.
+  - `release.yml`: Tag-triggered automated release workflow generating signed and notarized DMGs, SHA-256 checksums, and GitHub Releases.
 
 ---
 
@@ -82,7 +90,7 @@ Use this map to selectively load context when working on specific features.
 - **`LocalStorageTests.swift`**: Atomic writes, disk recovery, habit streaks, preferences persistence, and trip session serialization.
 - **`AudioEngineTests.swift`**: Volume ramp crossfading, audio lifecycle, and mute controls.
 - **`ModelTests.swift`**: Codable compliance, KaruPreferences serialization, and domain model math verification.
-- **`WidgetTelemetryTests.swift`**: Snapshot serialization roundtrips, presentation math, atomic saving, and corrupted fallback recovery.
+- **`WidgetTelemetryTests.swift`**: Snapshot persistence, serialization & math tests.
 
 ---
 
@@ -91,4 +99,5 @@ Use this map to selectively load context when working on specific features.
 - [SPEC.md](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/SPEC.md): Technical specification and architectural guidelines.
 - [SPEC-widget.md](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/SPEC-widget.md): Desktop flight telemetry widget specification.
 - [CAPABILITY_MAP.md](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/CAPABILITY_MAP.md): Decoupled module boundaries and dependency graphs.
-- [ADRs](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/decisions/): Architecture Decision Records covering ADR-001 through ADR-015.
+- [ADRs](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/decisions/): Architecture Decision Records covering ADR-001 through ADR-016.
+
