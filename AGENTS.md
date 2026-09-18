@@ -37,6 +37,9 @@
 - **ADR-013 (Desktop Telemetry Widgets):** Curated 12-field telemetry snapshot and interactive 1-click takeoff widget (`systemSmall` / `systemMedium`).
 - **ADR-014 (Packaging & Dock Telemetry):** Standalone `Karu.app` release packaging, dynamic `NSDockTile` avionics, and 4-stage pilot intake.
 - **ADR-015 (Pre-Flight Dispatch Deck & Modular Drawers):** 4-section clearance deck, modular drawer decomposition, dynamic destination durations, and cached formatters.
+- **ADR-016 (Hardened Runtime, Notarization & CI/CD Pipeline):** Hardened Runtime entitlements, zero-dependency DMG packager, xcrun notarytool/stapler integration, and automated GitHub Actions release workflow.
+
+
 
 ---
 
@@ -61,6 +64,15 @@
   ```bash
   swift package clean
   ```
+- **Package Standalone DMG:**
+  ```bash
+  ./scripts/create_dmg.sh
+  ```
+- **Notarize Release:**
+  ```bash
+  ./scripts/notarize_app.sh build/dist/Karu-v1.0.0.dmg
+  ```
+
 
 ---
 
@@ -126,13 +138,19 @@ Karu/
 │           ├── Garage/                   # GarageHangarView (Aircraft fleet & audio picker)
 │           ├── Settings/                 # AppFilterSettingsView (1-Click App Radar & Rules)
 │           └── Theme/                    # KaruTheme, KaruFormatters (Design tokens, palette & typography)
-├── Packaging/                            # Standalone bundle packaging, icons & installer scripts
+├── Packaging/                            # Standalone bundle packaging, icons & security entitlements
 │   ├── Info.plist                        # macOS application bundle property list
 │   ├── WidgetInfo.plist                  # WidgetKit extension bundle property list
+│   ├── Karu.entitlements                 # Hardened Runtime security entitlements
 │   └── generate_app_icon.swift           # CoreGraphics Apple squircle icon generator
-├── scripts/                              # Standalone compilation and system deployment scripts
+├── scripts/                              # Standalone compilation, DMG packaging and notarization scripts
 │   ├── build_app.sh                      # Release compilation and standalone .app packager
+│   ├── create_dmg.sh                     # Native zero-dependency Finder-styled DMG packager
+│   ├── notarize_app.sh                   # Apple Notary submission & ticket stapling helper
 │   └── install_app.sh                    # System installer (/Applications/) and LaunchServices registrar
+├── .github/workflows/                    # Continuous integration and automated release workflows
+│   ├── build-and-test.yml                # PR & push validation on macOS 14 with warnings as errors
+│   └── release.yml                       # Tag-triggered automated DMG build, notarization & GitHub Release
 ├── Tests/
 │   └── KaruCoreTests/                    # Comprehensive unit tests
 │       ├── TransitEngineTests.swift      # Velocity (540 kts), efficiency, turbulence logs
@@ -141,5 +159,6 @@ Karu/
 │       ├── AudioEngineTests.swift        # Soundscape lifecycle & crossfade tests
 │       ├── ModelTests.swift              # Serialization & domain model logic tests
 │       └── WidgetTelemetryTests.swift    # Snapshot persistence, serialization & math tests
-└── docs/                                 # PRD, Specifications, and Architecture Decision Records (ADR-001 - ADR-015)
+└── docs/                                 # PRD, Specifications, and Architecture Decision Records (ADR-001 - ADR-016)
+
 ```
