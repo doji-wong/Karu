@@ -16,6 +16,7 @@ This document establishes the decoupled module boundaries, dependencies, and bui
 | `preflight-dispatch` | `Karu` | Pre-flight mission dispatch deck, dual route corridor with swap, 1-tap seat selector strip, dynamic destination duration memory, and modular accordion drawers. | `transit-engine`, `audio-engine`, `karu-models`, `SwiftUI` | `macos-windowing-ui` |
 | `telemetry-widgets` | `KaruWidgets` & `Karu` | Desktop WidgetKit extensions (`systemSmall`, `systemMedium`) and interactive `NSDockTile` live cockpit telemetry. | `karu-models`, `local-storage`, `WidgetKit`, `AppIntents` | macOS Desktop, Dock |
 | `macos-windowing-ui` | `Karu` | Presentation layer: MenuBar Popover, Notch Wings, Floating HUD Card, FocusFlightCard, Garage Hangar, Settings (1-Click App Radar), Pilot Onboarding, and Pilot's Logbook. | `transit-engine`, `app-classifier`, `local-storage`, `audio-engine`, `preflight-dispatch`, `AppKit`, `SwiftUI` | End User (macOS Desktop) |
+| `release-dmg-pipeline` | `Packaging` & `scripts` | Hardened Runtime code signing, zero-dependency Finder-styled `.dmg` packager, Apple Notarization, and automated GitHub Actions CI/CD release workflow. | `macos-windowing-ui`, `telemetry-widgets`, `Packaging/Karu.entitlements`, `scripts/` | GitHub Releases, End User Distribution |
 
 ---
 
@@ -44,11 +45,22 @@ graph TD
         UI --> GH[Garage Hangar]
         UI --> SET[AppFilterSettings & 1-Click Radar]
     end
+
+    subgraph KaruWidgets [Target: KaruWidgets (Extension)]
+        WID[telemetry-widgets]
+    end
+
+    subgraph Distribution [Packaging & Release Pipeline]
+        REL[release-dmg-pipeline]
+    end
     
     TE --> UI
     AC --> UI
     LS --> UI
     AE --> UI
+    LS --> WID
+    UI --> REL
+    WID --> REL
 ```
 
 ### Approved Build Order:
@@ -58,3 +70,6 @@ graph TD
 4. `local-storage` (`Sources/KaruCore/Storage/LocalStorageManager.swift`)
 5. `audio-engine` (`Sources/KaruCore/Core/AudioEngine.swift`)
 6. `macos-windowing-ui` (`Sources/Karu/UI/`, `AppDelegate.swift`, `KaruApp.swift`)
+7. `telemetry-widgets` (`Sources/KaruWidgets/`, `Packaging/WidgetInfo.plist`)
+8. `release-dmg-pipeline` (`Packaging/`, `scripts/build_app.sh`, `scripts/create_dmg.sh`, `scripts/notarize_app.sh`, `.github/workflows/`)
+
