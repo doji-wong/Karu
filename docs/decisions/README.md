@@ -23,6 +23,8 @@ This directory documents all significant technical and architectural decisions f
 | [ADR-013](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/decisions/ADR-013-desktop-flight-telemetry-widgets.md) | Desktop Flight Telemetry Widgets & Curated Avionics Metrics | **Accepted** | 2026-09-01 | Option A Small/Medium Widgets with curated 12-field telemetry & 1-click takeoff |
 | [ADR-014](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/decisions/ADR-014-standalone-macos-packaging-and-dock-telemetry.md) | Standalone macOS Packaging, Dynamic Dock Telemetry & Pilot Onboarding | **Accepted** | 2026-09-02 | Standalone `.app` bundle, `AppIcon.icns`, dynamic dock tile telemetry, and 4-stage intake |
 | [ADR-015](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/decisions/ADR-015-preflight-dispatch-deck-and-modular-aviation-drawers.md) | Pre-Flight Dispatch Deck, Dynamic Route/Time Clearance & Modular Drawers | **Accepted** | 2026-09-08 | 4-section clearance deck, modular drawer decomposition, dynamic destination durations, and cached formatters |
+| [ADR-016](file:///Users/vinbaldove/Documents/Karu%20-%20Focus%20Timer/docs/decisions/ADR-016-hardened-runtime-notarization-dmg-and-ci-cd-release-pipeline.md) | Hardened Runtime, Standalone DMG Distribution, Apple Notarization & CI/CD Pipeline | **Accepted** | 2026-09-18 | Hardened Runtime entitlements, zero-dependency DMG packager, xcrun notarytool/stapler integration, and automated GitHub Actions release workflow |
+
 
 ---
 
