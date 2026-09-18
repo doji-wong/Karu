@@ -1,10 +1,11 @@
 # Karu — Product Requirements Document (PRD)
 
 **Document Status:** Approved (Focus Flight Edition)  
-**Version:** 2.1.0  
-**Date:** 2026-09-13  
+**Version:** 2.2.0  
+**Date:** 2026-09-18  
 **Platform:** macOS 14.0+ (Apple Silicon & Intel)  
 **Tech Foundation:** Native Swift / SwiftUI / AppKit (100% Local-First)
+
 
 ---
 
@@ -131,7 +132,17 @@ With integrated **Pilot Flight Hours Logbook**, **1-Click Running App Radar**, a
 * 400ms smooth crossfading between cruising soundscapes and turbulence alert soundscapes.
 * Integrated cabin voice announcements and chime sequences for takeoff, turbulence, and touchdown.
 
+### 4.11 Standalone DMG Packaging, Hardened Runtime & Apple Notarization
+* Native zero-dependency standalone disk image builder (`scripts/create_dmg.sh`) using macOS `hdiutil` and AppleScript Finder layout styling (540x380 window, 110 pt icons, `/Applications` symlink).
+* Strict Hardened Runtime configuration (`Packaging/Karu.entitlements`) with zero JIT or unsigned memory exceptions.
+* Automated Apple Notarization and ticket stapling via `scripts/notarize_app.sh` (`xcrun notarytool` and `xcrun stapler`) ensuring seamless Gatekeeper approval on macOS 14 Sonoma and macOS 15 Sequoia.
+
+### 4.12 Automated CI/CD Release Pipeline
+* GitHub Actions continuous integration workflow (`build-and-test.yml`) enforcing zero compiler warnings (`-warnings-as-errors`) and parallel unit test execution on `macos-14` runners.
+* Automated semantic release workflow (`release.yml`) triggered on `v*` tags: imports Apple Developer certificate, builds `.app` and `.appex`, generates DMG, executes notarization, computes SHA-256 checksums, and publishes GitHub Releases.
+
 ---
+
 
 ## 5. Non-Functional Requirements & Performance Budgets
 
