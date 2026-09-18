@@ -17,6 +17,8 @@
 - **Format:** `swift format format --in-place --recursive Sources/ Tests/`
 - **Lint:** `swift format lint --strict --recursive Sources/ Tests/`
 - **Clean Build Artifacts:** `swift package clean`
+- **Package Standalone DMG:** `./scripts/create_dmg.sh`
+- **Notarize Release:** `./scripts/notarize_app.sh build/dist/Karu-v1.0.0.dmg`
 
 ## Code Conventions & Architecture
 - **Concurrency:** Mark all UI-bound stores, controllers, and views with `@MainActor`. Ensure cross-thread data types conform to `Sendable`.
@@ -38,6 +40,9 @@
 - `Sources/KaruCore/Storage/`: `LocalStorageManager.swift`
 - `Sources/Karu/`: `KaruApp.swift`, `AppDelegate.swift`
 - `Sources/Karu/UI/`: `MenuBar/`, `Notch/`, `FloatingHUD/`, `Aviation/`, `Widgets/`, `Dock/`, `Onboarding/`, `Logbook/`, `Garage/`, `Settings/`, `Theme/`
-- `Packaging/`: `Info.plist`, `WidgetInfo.plist`, `generate_app_icon.swift`, `build_app.sh`, `install_app.sh`
+- `Packaging/`: `Info.plist`, `WidgetInfo.plist`, `Karu.entitlements`, `generate_app_icon.swift`
+- `scripts/`: `build_app.sh`, `create_dmg.sh`, `notarize_app.sh`, `install_app.sh`
+- `.github/workflows/`: `build-and-test.yml`, `release.yml`
 - `Tests/KaruCoreTests/`: `TransitEngineTests.swift`, `AppClassifierTests.swift`, `LocalStorageTests.swift`, `AudioEngineTests.swift`, `ModelTests.swift`, `WidgetTelemetryTests.swift`
-- `docs/`: `PRD.md`, `SPEC.md`, `PROJECT_MAP.md`, `CAPABILITY_MAP.md`, `decisions/` (ADR-001 - ADR-015)
+- `docs/`: `PRD.md`, `SPEC.md`, `PROJECT_MAP.md`, `CAPABILITY_MAP.md`, `decisions/` (ADR-001 - ADR-016)
+
